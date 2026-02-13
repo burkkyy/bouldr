@@ -1,0 +1,6 @@
+dist
+docs
+
+/now.*
+/*.now.*
+**/now.*
