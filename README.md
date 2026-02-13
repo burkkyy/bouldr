@@ -18,7 +18,11 @@ TODO
 
 # Deploying
 
-## Production Environment (remote)
+## VIU Lab Machine Environment
+
+TODO
+
+## Production Environment (remote) (dont need this?)
 
 TODO
 
