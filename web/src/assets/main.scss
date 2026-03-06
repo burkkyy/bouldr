@@ -1,0 +1,63 @@
+@use "vuetify" with (
+  $utilities: "true",
+  $color-pack: false,
+  $body-font-family: "Poppins"
+);
+
+.main-sidebar .v-list-item {
+  border-left: 5px #00000000 solid;
+  padding-left: 11px !important;
+}
+.main-sidebar .v-list-item--active {
+  border-left: 5px #000000 solid !important;
+}
+
+.v-card-subtitle {
+  font-weight: bold !important;
+}
+
+.text-gray {
+  color: #242424;
+  font-weight: 400;
+}
+
+.text-alt-font {
+  font-family: "Ruda", sans-serif;
+  font-optical-sizing: auto;
+  font-weight: 900 !important;
+  font-style: normal;
+}
+
+/*  a:not(.v-list-item) {
+  color: #828066;
+} */
+
+.v-data-table__tr:hover {
+  background-color: #eeeeee !important;
+}
+
+.v-breadcrumbs-item.v-breadcrumbs-item--disabled {
+  color: black !important;
+  opacity: 1;
+}
+
+.border-chip {
+  border: 1px solid !important;
+  border-color: inherit;
+}
+
+.v-chip.blue {
+  background-color: #436c9301;
+  border: 1px solid #436c9344;
+  color: #436c93;
+}
+.v-chip.blue {
+  background-color: #436c9301;
+  border: 1px solid #436c9344;
+  color: #436c93;
+}
+.v-chip.success {
+  background-color: #0b7e0b01;
+  border: 1px solid #0b7e0b44;
+  color: #0b7e0b;
+}

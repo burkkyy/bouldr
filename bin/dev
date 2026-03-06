@@ -1,0 +1,21 @@
+#!/bin/sh
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd -P)"
+
+COMMAND="docker compose -f docker-compose.development.yml"
+
+case "$1" in
+    api|web|db)
+        COMMAND="$COMMAND run --rm $*"
+        ;;
+    up|down)
+        COMMAND="$COMMAND $* --remove-orphans"
+        ;;
+    *)
+        COMMAND="$COMMAND $*"
+        ;;
+esac
+
+echo "Running: cd $PROJECT_ROOT && $COMMAND"
+cd $PROJECT_ROOT && $COMMAND

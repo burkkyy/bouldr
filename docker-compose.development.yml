@@ -1,12 +1,55 @@
 x-default-environment: &default-environment
   TZ: "UTC"
+  NODE_ENV: "development"
+  DB_HOST: "db"
+  DB_PORT: "1521"
+  DB_USERNAME: "system"
+  DB_PASSWORD: "oracle"
+  DB_DATABASE: "xe"
 
 services:
-  app:
-    TODO
+  api:
+    build:
+      context: ./api
+      dockerfile: development.Dockerfile
+    env_file:
+      - ./api/.env.development
+    environment:
+      <<: *default-environment
+    tty: true
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./api:/usr/src/api
+      - ./.gitignore:/usr/src/.gitignore
+      - ./.prettierrc.yaml:/usr/src/.prettierrc.yaml
+    # depends_on:
+    #   - db
+
+  web:
+    build:
+      context: ./web
+      dockerfile: development.Dockerfile
+    environment:
+      <<: *default-environment
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./web:/usr/src/web
+      - ./.gitignore:/usr/src/.gitignore
+      - ./.prettierrc.yaml:/usr/src/.prettierrc.yaml
+    depends_on:
+      - api
 
   db:
-    TODO
+    image: wnameless/oracle-xe-11g-r2
+    ports:
+      - "1521:1521"
+    environment:
+      - ORACLE_ALLOW_REMOTE=true
+      - ORACLE_DISABLE_ASLR=true
+    volumes:
+      - db_data:/u01/app/oracle
 
   plantuml:
     image: plantuml/plantuml-server:jetty
