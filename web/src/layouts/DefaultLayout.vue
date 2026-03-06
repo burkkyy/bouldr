@@ -1,7 +1,7 @@
 <template>
   <v-main>
     <v-container fluid>
-      <router-view @close-drawers="closeDrawers" />
+      <router-view />
     </v-container>
   </v-main>
 </template>

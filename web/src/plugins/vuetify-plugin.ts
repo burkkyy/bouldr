@@ -76,7 +76,7 @@ export default createVuetify({
       bgColor: "white",
       hideDetails: "auto",
       prependInnerIcon: "mdi-paperclip",
-      prependIcon: ""
+      prependIcon: "",
     },
     VListItem: {
       minHeight: "45px",

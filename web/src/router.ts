@@ -1,8 +1,4 @@
-import {
-  createRouter,
-  createWebHistory,
-  type RouteRecordRaw,
-} from "vue-router";
+import { createRouter, createWebHistory, type RouteRecordRaw } from "vue-router"
 // _TODO_ add import guard for user "auth"
 
 const routes: RouteRecordRaw[] = [
@@ -59,12 +55,12 @@ const routes: RouteRecordRaw[] = [
   //     },
   //   ],
   // },
-];
+]
 
 const router = createRouter({
   history: createWebHistory(),
   routes,
-});
+})
 
 // Completely not nessessary?
 // router.beforeEach(async (to) => {
@@ -86,4 +82,4 @@ const router = createRouter({
 //   return false;
 // });
 
-export default router;
+export default router

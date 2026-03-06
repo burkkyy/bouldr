@@ -5,4 +5,4 @@ export default {
       system_admin: "System Admin",
     },
   },
-};
+}

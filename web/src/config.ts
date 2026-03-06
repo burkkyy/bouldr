@@ -3,35 +3,27 @@ import { stripTrailingSlash } from "@/utils/strip-trailing-slash"
 export const ENVIRONMENT = import.meta.env.MODE
 
 const prodConfig = {
-  domain: "https://dune-cx.us.auth0.com",
-  clientId: "Bjuzy1WonTyMhuzVbC2BOwDFFg2D8091",
-  audience: "thrive",
+  domain: "",
+  clientId: "",
+  audience: "",
   apiBaseUrl: "",
-  applicationName: "ARCHIEai",
-}
-
-const uatConfig = {
-  domain: "https://dune-cx.us.auth0.com",
-  clientId: "Bjuzy1WonTyMhuzVbC2BOwDFFg2D8091",
-  audience: "thrive",
-  apiBaseUrl: "",
-  applicationName: "ARCHIEai - UAT",
+  applicationName: "bouldr",
 }
 
 const devConfig = {
-  domain: "https://dune-cx.us.auth0.com",
-  clientId: "Bjuzy1WonTyMhuzVbC2BOwDFFg2D8091",
-  audience: "thrive",
+  domain: "",
+  clientId: "",
+  audience: "",
   apiBaseUrl: "http://localhost:3000",
-  applicationName: "ARCHIEai",
+  applicationName: "bouldr",
 }
 
 const localProductionConfig = {
-  domain: "https://dune-cx.us.auth0.com",
-  clientId: "Bjuzy1WonTyMhuzVbC2BOwDFFg2D8091",
-  audience: "thrive",
+  domain: "",
+  clientId: "",
+  audience: "",
   apiBaseUrl: "http://localhost:8080",
-  applicationName: "ARCHIEai - DEV (production)",
+  applicationName: "bouldr - DEV (production)",
 }
 
 let config = prodConfig
@@ -40,8 +32,6 @@ if (ENVIRONMENT === "production" && window.location.host === "localhost:8080") {
   config = localProductionConfig
 } else if (window.location.host === "localhost:8080") {
   config = devConfig
-} else if (window.location.host == "dune-thrive-uat.azurewebsites.net") {
-  config = uatConfig
 }
 
 export const APPLICATION_NAME = config.applicationName

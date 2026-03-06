@@ -6,40 +6,41 @@
     -->
     <router-view v-else-if="isReady || isErrored" />
     <PageLoader
-      v-else-if="isLoadingAuth0 || isLoadingCurrentUser"
+      v-else-if="isLoading"
       message="Fetching and syncing user"
     />
     <PageLoader
       v-else-if="!isReady"
       message="Checking authentication status ..."
     />
-    <PageLoader v-else message="Initializing app ..." />
+    <PageLoader
+      v-else
+      message="Initializing app ..."
+    />
     <AppSnackbar />
   </v-app>
 </template>
 
 <script lang="ts" setup>
-import { computed, ref, watch } from "vue";
-import { useRoute, useRouter } from "vue-router";
+import { computed, ref, watch } from "vue"
+import { useRoute, useRouter } from "vue-router"
 
 // import useCurrentUser from "@/use/use-current-user"
 
-import PageLoader from "@/components/common/PageLoader.vue";
-import AppSnackbar from "@/components/common/AppSnackbar.vue";
+import PageLoader from "@/components/common/PageLoader.vue"
+import AppSnackbar from "@/components/common/AppSnackbar.vue"
 
-const route = useRoute();
-const isUnauthenticatedRoute = computed(
-  () => route.meta.requiresAuth === false,
-);
+const route = useRoute()
+const isUnauthenticatedRoute = computed(() => route.meta.requiresAuth === false)
 
 // const { isLoading, fetch } = useCurrentUser();
 
-const isLoading = ref<boolean>(true);
+const isLoading = ref<boolean>(true)
 
-const isReady = ref(false);
-const isErrored = ref(false);
+const isReady = ref(false)
+const isErrored = ref(false)
 
-const router = useRouter();
+const router = useRouter()
 
 // Ignore this for now
 
@@ -49,28 +50,28 @@ watch(
   async (isLoaded: boolean) => {
     if (isLoaded === true) {
       try {
-        console.log("Loading current user");
+        console.log("Loading current user")
         //await fetch();
-        isReady.value = true;
+        isReady.value = true
 
         if (route.name == "SignInPage") {
           //if (isSystemAdmin.value == true)
-          router.push({ name: "administration/DashboardPage" });
+          router.push({ name: "administration/DashboardPage" })
           //else router.push({ name: "individual/HomePage" })
         }
       } catch (error) {
-        console.log("Failed to load current user:", error);
-        isErrored.value = true;
-        await router.isReady();
+        console.log("Failed to load current user:", error)
+        isErrored.value = true
+        await router.isReady()
         //await router.push({ name: "UnauthorizedPage" })
-        await router.push({ name: "SignInPage" });
+        await router.push({ name: "SignInPage" })
       }
     } else if (!isUnauthenticatedRoute.value === false) {
-      isReady.value = true;
+      isReady.value = true
     } else {
-      isReady.value = true;
+      isReady.value = true
     }
   },
-  { immediate: true },
-);
+  { immediate: true }
+)
 </script>
