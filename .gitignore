@@ -110,8 +110,8 @@ app
 db/sapassword.env
 .env.development
 
-# DB Data
-db/data
-
 # Claude settings
 .claude/settings.local.json
+
+api/src/db/db-vol/*
+!api/src/db/db-vol/init.sql

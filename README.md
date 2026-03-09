@@ -56,7 +56,7 @@
    ./bin/boot-app.sh # from the /api directory
    ```
 
-2. Access the api by going to <http://localhost:5000>
+2. Access the api by going to <http://localhost:5001>
 
 ### Web Service (a.k.a. front-end)
 
