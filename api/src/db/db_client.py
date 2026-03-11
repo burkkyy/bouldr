@@ -6,7 +6,9 @@ import os
 db_path = os.path.join(os.path.dirname(__file__), "api", "src", "db", "db-vol", "database.sqlite")
 DATABASE_URL = f"sqlite:///{db_path}"
 
-engine = create_engine(DATABASE_URL, echo=True, connect_args={"check_same_thread": False})
+def init_db():
+    engine = create_engine(DATABASE_URL, echo=True, connect_args={"check_same_thread": False})
 
-migrations_folder = os.path.join(os.path.dirname(__file__), "api", "src", "db", "migrations")
-run_migrations(engine, migrations_folder)
+    migrations_folder = os.path.join(os.path.dirname(__file__), "api", "src", "db", "migrations")
+    run_migrations(engine, migrations_folder)
+    return engine
