@@ -3,7 +3,9 @@ CREATE TABLE Users (
     ID INTEGER PRIMARY KEY AUTOINCREMENT, 
     username TEXT NOT NULL,
     displayName TEXT, 
-    joinDate DATE NOT NULL 
+    createdAt DATE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updatedAt DATE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    deletedAt DATE
 );
 
 -- Create Regions Table 
@@ -11,7 +13,10 @@ CREATE TABLE Regions (
     ID INTEGER PRIMARY KEY AUTOINCREMENT,
     type TEXT NOT NULL,
     name TEXT NOT NULL,
-    parentID INTEGER NOT NULL,
+    parentID INTEGER,
+    createdAt DATE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updatedAt DATE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    deletedAt DATE
     FOREIGN KEY (parentID) REFERENCES Regions(ID)
 );
 
@@ -19,12 +24,14 @@ CREATE TABLE Regions (
 CREATE TABLE Boulders (
     ID INTEGER PRIMARY KEY AUTOINCREMENT,
     authorID INTEGER NOT NULL, 
-    name TEXT NOT NULL, 
+    name TEXT NOT NULL,
     description TEXT, 
     image TEXT, 
     grade INTEGER NOT NULL,
     coordinates TEXT,
-    dateAdded DATE NOT NULL,
+    createdAt DATE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updatedAt DATE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    deletedAt DATE
     FOREIGN KEY (authorID) REFERENCES Users(ID)
 );
 
@@ -35,6 +42,9 @@ CREATE TABLE Sends (
     userID INTEGER NOT NULL,
     rating REAL,
     sendType INTEGER NOT NULL,
+    createdAt DATE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updatedAt DATE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    deletedAt DATE,
     FOREIGN KEY (boulderID) REFERENCES Boulders(ID),
     FOREIGN KEY (userID) REFERENCES Users(ID)
 );
