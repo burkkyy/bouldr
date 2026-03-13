@@ -1,7 +1,7 @@
 x-default-environment: &default-environment
   TZ: "UTC"
   NODE_ENV: "development"
-  DB_DATABASE: "/data/database.sqlite"
+  DATABASE_URL: "sqlite:////data/database.sqlite"
 
 services:
   api:
@@ -19,7 +19,7 @@ services:
       - ./api:/usr/src/api
       - ./.gitignore:/usr/src/.gitignore
       - ./.prettierrc.yaml:/usr/src/.prettierrc.yaml
-      - db_data:/data
+      - ./db_data:/data
 
   web:
     build:
@@ -35,15 +35,3 @@ services:
       - ./.prettierrc.yaml:/usr/src/.prettierrc.yaml
     depends_on:
       - api
-
-  plantuml:
-    image: plantuml/plantuml-server:jetty
-    ports:
-      - 9999:8080
-    environment:
-      PLANTUML_LIMIT_SIZE: 8192
-    profiles:
-      - design
-
-volumes:
-  db_data:
