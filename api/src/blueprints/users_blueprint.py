@@ -12,8 +12,11 @@ def index():
 
 @users_blueprint.get("/<int:id>")
 def get(id):
-    user = db.get_or_404(User, id)
-    return jsonify({"id": user.id, "username": user.username})
+    try:
+        user = db.get_or_404(User, id)
+        return jsonify({"id": user.id, "username": user.username})
+    except:
+        return jsonify({"message": "failed to get user"})
 
 @users_blueprint.post("/")
 def create():
