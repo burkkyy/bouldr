@@ -1,13 +1,14 @@
 from flask import Blueprint, jsonify
-from src.models import User
+
 from src import db
+from src.models import User
 
 users_blueprint = Blueprint("users", __name__)
 
 @users_blueprint.get("/")
 def index():
     users = db.session.execute(db.select(User)).scalars().all()
-    return jsonify([{"id": u.id, "username": u.username} for u in users])
+    return jsonify([{"id": user.id, "username": user.username} for user in users])
 
 @users_blueprint.get("/<int:id>")
 def get(id):
