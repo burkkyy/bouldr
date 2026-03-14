@@ -90,10 +90,35 @@ TODO
 
 TODO
 
-### Production Environment (remote) (dont need this?)
-
-TODO
-
 ### Test Production Build Locally
 
-TODO
+Files:
+
+- [Dockerfile](./Dockerfile)
+- [docker-compose.yml](./docker-compose.yml)
+- Non-commited `.env` file
+
+1. Create a `.env` file in top level directory with the appropriate values.
+
+   ```bash
+   VITE_APPLICATION_NAME=bouldr
+   API_PORT=5000
+   ```
+
+2. (optional) Build local production image, can skip if you don't care about `RELEASE_TAG` and `GIT_COMMIT_HASH`
+
+   ```bash
+   docker compose build \
+      --build-arg RELEASE_TAG=$(date +%Y.%m.%d) \
+      --build-arg GIT_COMMIT_HASH=$(git rev-parse HEAD)
+   ```
+
+3. Build and boot the production image via
+
+   ```bash
+   docker compose up
+   ```
+
+4. Go to <http://localhost:8080/> and log in.
+
+5. Navigate around and see if it works
