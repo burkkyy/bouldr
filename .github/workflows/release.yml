@@ -1,0 +1,51 @@
+name: Build and Release
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build-and-release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Generate release tag
+        id: generate_release_tag
+        uses: amitsingh-007/next-release-tag@v5.1.0
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          tag_prefix: "v"
+          tag_template: "yyyy.mm.dd.i"
+
+      - name: Extract Git Commit Hash
+        id: git_commit_hash
+        run: echo "commit_hash=$(git rev-parse HEAD)" >> $GITHUB_OUTPUT
+
+      - name: Build Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: false
+          load: true
+          build-args: |
+            RELEASE_TAG=${{ steps.generate_release_tag.outputs.next_release_tag }}
+            GIT_COMMIT_HASH=${{ steps.git_commit_hash.outputs.commit_hash }}
+          tags: |
+            bouldr-app:${{ steps.generate_release_tag.outputs.next_release_tag }}
+
+      - name: Save image as tar
+        run: |
+          docker save bouldr-app:${{ steps.generate_release_tag.outputs.next_release_tag }} \
+            | gzip > bouldr-app.tar.gz
+
+      - name: Create release
+        uses: ncipollo/release-action@v1
+        with:
+          tag: ${{ steps.generate_release_tag.outputs.next_release_tag }}
+          artifacts: "bouldr-app.tar.gz"
+          body: |
+            Commit: ${{ steps.git_commit_hash.outputs.commit_hash }}
