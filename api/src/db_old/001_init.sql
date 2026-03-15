@@ -6,7 +6,7 @@ CREATE TABLE Users (
     createdAt DATE NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updatedAt DATE NOT NULL DEFAULT CURRENT_TIMESTAMP,
     deletedAt DATE
-);
+); 
 
 -- Create Regions Table 
 CREATE TABLE Regions (
@@ -16,7 +16,7 @@ CREATE TABLE Regions (
     parentID INTEGER,
     createdAt DATE NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updatedAt DATE NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    deletedAt DATE
+    deletedAt DATE,
     FOREIGN KEY (parentID) REFERENCES Regions(ID)
 );
 
@@ -31,7 +31,7 @@ CREATE TABLE Boulders (
     coordinates TEXT,
     createdAt DATE NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updatedAt DATE NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    deletedAt DATE
+    deletedAt DATE,
     FOREIGN KEY (authorID) REFERENCES Users(ID)
 );
 
