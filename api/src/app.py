@@ -6,15 +6,16 @@ from src import db
 from src.config import Config
 from src.blueprints import register_blueprints
 
+
 def create_app():
-    app = Flask(__name__, static_folder="web", static_url_path="")
-    app.config["SQLALCHEMY_DATABASE_URI"] = Config.DATABASE_URL
-    
+    app = Flask(__name__)
+    app.config.from_object(Config)
+
     db.init_app(app)
 
     with app.app_context():
         from src import models
-        db.create_all() # NOTE: Only creates tables if they dont exist
+        db.create_all()  # only creates missing tables
 
     register_blueprints(app)
 

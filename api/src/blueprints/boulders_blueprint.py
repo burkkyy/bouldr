@@ -1,0 +1,143 @@
+from datetime import datetime
+
+from flask import Blueprint, jsonify, request
+
+from src import db
+from src.models import Boulder, User
+
+boulders_blueprint = Blueprint("boulders", __name__)
+
+
+def serialize_boulder(boulder: Boulder) -> dict:
+    return {
+        "id": boulder.id,
+        "authorID": boulder.author_id,
+        "name": boulder.name,
+        "description": boulder.description,
+        "image": boulder.image,
+        "grade": boulder.grade,
+        "coordinates": boulder.coordinates,
+        "createdAt": boulder.created_at.isoformat() if boulder.created_at else None,
+        "updatedAt": boulder.updated_at.isoformat() if boulder.updated_at else None,
+        "deletedAt": boulder.deleted_at.isoformat() if boulder.deleted_at else None,
+    }
+
+
+def get_active_boulder(id: int) -> Boulder | None:
+    return db.session.execute(
+        db.select(Boulder).where(Boulder.id == id, Boulder.deleted_at.is_(None))
+    ).scalar_one_or_none()
+
+
+def get_active_user(id: int) -> User | None:
+    return db.session.execute(
+        db.select(User).where(User.id == id, User.deleted_at.is_(None))
+    ).scalar_one_or_none()
+
+
+@boulders_blueprint.get("/")
+def index():
+    boulders = db.session.execute(
+        db.select(Boulder).where(Boulder.deleted_at.is_(None))
+    ).scalars().all()
+
+    return jsonify([serialize_boulder(boulder) for boulder in boulders])
+
+
+@boulders_blueprint.get("/<int:id>")
+def get(id):
+    boulder = get_active_boulder(id)
+
+    if boulder is None:
+        return jsonify({"error": "boulder not found"}), 404
+
+    return jsonify(serialize_boulder(boulder))
+
+
+@boulders_blueprint.post("/")
+def create():
+    data = request.get_json(silent=True) or {}
+
+    author_id = data.get("authorID")
+    name = data.get("name")
+    grade = data.get("grade")
+
+    if author_id is None:
+        return jsonify({"error": "authorID is required"}), 400
+
+    if not name:
+        return jsonify({"error": "name is required"}), 400
+
+    if grade is None:
+        return jsonify({"error": "grade is required"}), 400
+
+    if get_active_user(author_id) is None:
+        return jsonify({"error": "author not found"}), 400
+
+    boulder = Boulder(
+        author_id=author_id,
+        name=name,
+        description=data.get("description"),
+        image=data.get("image"),
+        grade=grade,
+        coordinates=data.get("coordinates"),
+    )
+
+    db.session.add(boulder)
+    db.session.commit()
+
+    return jsonify(serialize_boulder(boulder)), 201
+
+
+@boulders_blueprint.patch("/<int:id>")
+def update(id):
+    boulder = get_active_boulder(id)
+
+    if boulder is None:
+        return jsonify({"error": "boulder not found"}), 404
+
+    data = request.get_json(silent=True) or {}
+
+    if "authorID" in data:
+        author_id = data["authorID"]
+
+        if get_active_user(author_id) is None:
+            return jsonify({"error": "author not found"}), 400
+
+        boulder.author_id = author_id
+
+    if "name" in data:
+        if not data["name"]:
+            return jsonify({"error": "name cannot be empty"}), 400
+        boulder.name = data["name"]
+
+    if "description" in data:
+        boulder.description = data["description"]
+
+    if "image" in data:
+        boulder.image = data["image"]
+
+    if "grade" in data:
+        if data["grade"] is None:
+            return jsonify({"error": "grade cannot be null"}), 400
+        boulder.grade = data["grade"]
+
+    if "coordinates" in data:
+        boulder.coordinates = data["coordinates"]
+
+    db.session.commit()
+
+    return jsonify(serialize_boulder(boulder))
+
+
+@boulders_blueprint.delete("/<int:id>")
+def delete(id):
+    boulder = get_active_boulder(id)
+
+    if boulder is None:
+        return jsonify({"error": "boulder not found"}), 404
+
+    boulder.deleted_at = datetime.utcnow()
+    db.session.commit()
+
+    return jsonify({"message": "boulder deleted"})
