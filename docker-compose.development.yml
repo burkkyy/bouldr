@@ -2,7 +2,7 @@ x-default-environment: &default-environment
   TZ: "UTC"
   NODE_ENV: "development"
   API_PORT: "5001"
-  DATABASE_URL: "sqlite:////data/database.sqlite"
+  SQLALCHEMY_DATABASE_URI: "sqlite:////data/database.sqlite"
 
 services:
   api:
