@@ -8,8 +8,8 @@ from src.models import Boulder, Send, User
 sends_blueprint = Blueprint("sends", __name__)
 
 
-def serialize_send(send: Send) -> dict:
-    return {
+def serialize_send(send: Send, user: User | None = None) -> dict:
+    data = {
         "id": send.id,
         "boulderID": send.boulder_id,
         "userID": send.user_id,
@@ -19,6 +19,10 @@ def serialize_send(send: Send) -> dict:
         "updatedAt": send.updated_at.isoformat() if send.updated_at else None,
         "deletedAt": send.deleted_at.isoformat() if send.deleted_at else None,
     }
+    if user is not None:
+        data["username"] = user.username
+        data["displayName"] = user.display_name
+    return data
 
 
 def get_active_send(id: int) -> Send | None:
@@ -41,11 +45,24 @@ def get_active_user(id: int) -> User | None:
 
 @sends_blueprint.get("/")
 def index():
-    sends = db.session.execute(
-        db.select(Send).where(Send.deleted_at.is_(None))
-    ).scalars().all()
+    query = db.select(Send).where(Send.deleted_at.is_(None))
 
-    return jsonify([serialize_send(send) for send in sends])
+    boulder_id = request.args.get("boulderID")
+    if boulder_id is not None:
+        query = query.where(Send.boulder_id == int(boulder_id))
+
+    sends = db.session.execute(query).scalars().all()
+
+    # Build a map of user_ids to users for the response
+    user_ids = {s.user_id for s in sends}
+    users = {}
+    if user_ids:
+        user_rows = db.session.execute(
+            db.select(User).where(User.id.in_(user_ids))
+        ).scalars().all()
+        users = {u.id: u for u in user_rows}
+
+    return jsonify([serialize_send(send, users.get(send.user_id)) for send in sends])
 
 
 @sends_blueprint.get("/<int:id>")

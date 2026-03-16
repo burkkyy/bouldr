@@ -14,7 +14,7 @@ const devConfig = {
   domain: "",
   clientId: "",
   audience: "",
-  apiBaseUrl: "http://localhost:3000",
+  apiBaseUrl: `http://localhost:${import.meta.env.VITE_API_PORT ?? 5001}`,
   applicationName: "bouldr",
 }
 

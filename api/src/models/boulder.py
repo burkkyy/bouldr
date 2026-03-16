@@ -18,6 +18,12 @@ class Boulder(db.Model):
         nullable=False,
     )
 
+    region_id: Mapped[Optional[int]] = mapped_column(
+        "regionid",
+        ForeignKey("regions.id"),
+        nullable=True,
+    )
+
     name: Mapped[str] = mapped_column(String, nullable=False)
 
     description: Mapped[Optional[str]] = mapped_column(Text)

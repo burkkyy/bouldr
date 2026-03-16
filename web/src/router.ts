@@ -4,14 +4,30 @@ import { createRouter, createWebHistory, type RouteRecordRaw } from "vue-router"
 const routes: RouteRecordRaw[] = [
   {
     path: "/",
+    redirect: "/boulders",
+  },
+  {
+    path: "/",
+    component: () => import("@/layouts/DefaultLayout.vue"),
+    children: [
+      {
+        path: "/boulders",
+        name: "BouldersPage",
+        component: () => import("@/pages/BouldersPage.vue"),
+        meta: { requiresAuth: false },
+      },
+      {
+        path: "/boulders/:id",
+        name: "BoulderDetailPage",
+        component: () => import("@/pages/BoulderDetailPage.vue"),
+        meta: { requiresAuth: false },
+      },
+    ],
+  },
+  {
+    path: "/",
     component: () => import("@/layouts/BlankLayout.vue"),
     children: [
-      // {
-      //   path: "/",
-      //   name: "SplashPage",
-      //   component: () => import("@/pages/SplashPage.vue"),
-      //   meta: { requiresAuth: false },
-      // },
       {
         path: "/sign-in",
         name: "SignInPage",

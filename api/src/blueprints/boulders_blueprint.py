@@ -12,6 +12,7 @@ def serialize_boulder(boulder: Boulder) -> dict:
     return {
         "id": boulder.id,
         "authorID": boulder.author_id,
+        "regionID": boulder.region_id,
         "name": boulder.name,
         "description": boulder.description,
         "image": boulder.image,
@@ -37,9 +38,13 @@ def get_active_user(id: int) -> User | None:
 
 @boulders_blueprint.get("/")
 def index():
-    boulders = db.session.execute(
-        db.select(Boulder).where(Boulder.deleted_at.is_(None))
-    ).scalars().all()
+    query = db.select(Boulder).where(Boulder.deleted_at.is_(None))
+
+    region_id = request.args.get("regionId")
+    if region_id is not None:
+        query = query.where(Boulder.region_id == int(region_id))
+
+    boulders = db.session.execute(query).scalars().all()
 
     return jsonify([serialize_boulder(boulder) for boulder in boulders])
 
@@ -76,6 +81,7 @@ def create():
 
     boulder = Boulder(
         author_id=author_id,
+        region_id=data.get("regionID"),
         name=name,
         description=data.get("description"),
         image=data.get("image"),
@@ -105,6 +111,9 @@ def update(id):
             return jsonify({"error": "author not found"}), 400
 
         boulder.author_id = author_id
+
+    if "regionID" in data:
+        boulder.region_id = data["regionID"]
 
     if "name" in data:
         if not data["name"]:
