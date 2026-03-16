@@ -91,6 +91,7 @@ def seed_data():
     if boulder_1 is None:
         boulder_1 = Boulder(
             author_id=user_1.id,
+            region_id=region_2.id,
             name="the egg",
             description="short powerful roof climb",
             image="https://example.com/egg.jpg",
@@ -100,6 +101,7 @@ def seed_data():
         db.session.add(boulder_1)
         created["boulders"] += 1
     else:
+        boulder_1.region_id = region_2.id
         boulder_1.description = "short powerful roof climb"
         boulder_1.image = "https://example.com/egg.jpg"
         boulder_1.grade = 5
@@ -116,6 +118,7 @@ def seed_data():
     if boulder_2 is None:
         boulder_2 = Boulder(
             author_id=user_2.id,
+            region_id=region_2.id,
             name="granite dream",
             description="technical face with small crimps",
             image="https://example.com/granite.jpg",
@@ -125,6 +128,7 @@ def seed_data():
         db.session.add(boulder_2)
         created["boulders"] += 1
     else:
+        boulder_2.region_id = region_2.id
         boulder_2.description = "technical face with small crimps"
         boulder_2.image = "https://example.com/granite.jpg"
         boulder_2.grade = 7

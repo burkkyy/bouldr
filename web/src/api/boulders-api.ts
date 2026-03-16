@@ -2,10 +2,13 @@ import http from "@/api/http-client"
 
 export type Boulder = {
   id: number
+  authorId: number
+  regionId: number | null
   name: string
-  description: string
-  grade: string
-  location: string
+  description: string | null
+  image: string | null
+  grade: number
+  coordinates: string | null
   createdAt: string
   updatedAt: string
 }
@@ -25,20 +28,17 @@ export type BoulderQueryOptions = {
 }
 
 export const bouldersApi = {
-  async list(params: BoulderQueryOptions = {}): Promise<{
-    boulders: Boulder[]
-    totalCount: number
-  }> {
+  async list(params: BoulderQueryOptions = {}): Promise<Boulder[]> {
     const { data } = await http.get("/api/boulders", {
       params,
     })
     return data
   },
-  async get(boulderId: number): Promise<{ boulder: Boulder }> {
+  async get(boulderId: number): Promise<Boulder> {
     const { data } = await http.get(`/api/boulders/${boulderId}`)
     return data
   },
-  async create(attributes: Partial<Boulder>): Promise<{ boulder: Boulder }> {
+  async create(attributes: Partial<Boulder>): Promise<Boulder> {
     const { data } = await http.post("/api/boulders", attributes)
     return data
   },

@@ -1,6 +1,7 @@
 import os
 
 from flask import Flask, send_from_directory
+from flask_cors import CORS
 
 from src import db
 from src.config import Config
@@ -10,6 +11,8 @@ from src.blueprints import register_blueprints
 def create_app():
     app = Flask(__name__)
     app.config.from_object(Config)
+
+    CORS(app, origins=["http://localhost:8080"])
 
     db.init_app(app)
 
