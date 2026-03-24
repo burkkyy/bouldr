@@ -1,6 +1,12 @@
 <template>
   <div>
-    <h1 class="text-h4 mb-6">Boulders</h1>
+    <div class="d-flex align-center mb-6">
+      <h1 class="text-h4">Boulders</h1>
+      <v-spacer />
+      <v-btn color="primary" prepend-icon="mdi-plus" @click="showCreateDialog = true">
+        Create Boulder
+      </v-btn>
+    </div>
 
     <v-alert v-if="error" type="error" class="mb-4">{{ error }}</v-alert>
 
@@ -16,6 +22,80 @@
         />
       </v-col>
     </v-row>
+
+    <!-- Create Boulder Dialog -->
+    <v-dialog v-model="showCreateDialog" max-width="600" persistent>
+      <v-card>
+        <v-card-title>Create Boulder</v-card-title>
+        <v-card-text>
+          <v-form ref="createForm" @submit.prevent="handleCreateBoulder">
+            <v-text-field
+              v-model="newBoulder.name"
+              label="Name"
+              :rules="[rules.required]"
+              class="mb-2"
+            />
+            <v-text-field
+              v-model.number="newBoulder.grade"
+              label="Grade"
+              type="number"
+              :rules="[rules.required]"
+              class="mb-2"
+            />
+            <v-combobox
+              v-model="selectedRegion"
+              :items="regionAutocompleteItems"
+              label="Region"
+              clearable
+              class="mb-2"
+              hint="Select an existing region or type a new one"
+              persistent-hint
+            />
+            <v-select
+              v-if="isNewRegion"
+              v-model="newRegionType"
+              :items="regionTypeOptions"
+              label="New region type"
+              :rules="[rules.required]"
+              class="mb-2"
+            />
+            <v-select
+              v-if="isNewRegion && newRegionType && newRegionType !== 'Country'"
+              v-model="newRegionParentId"
+              :items="parentRegionItems"
+              label="Located in"
+              clearable
+              class="mb-2"
+              hint="Which region does this belong to?"
+              persistent-hint
+            />
+            <v-textarea
+              v-model="newBoulder.description"
+              label="Description"
+              rows="3"
+              class="mb-2"
+            />
+            <v-text-field
+              v-model="newBoulder.coordinates"
+              label="Coordinates"
+              placeholder="e.g. 49.123, -123.456"
+            />
+          </v-form>
+        </v-card-text>
+        <v-card-actions>
+          <v-spacer />
+          <v-btn variant="text" @click="resetCreateDialog">Cancel</v-btn>
+          <v-btn
+            color="primary"
+            variant="flat"
+            :loading="isCreating"
+            @click="handleCreateBoulder"
+          >
+            Create
+          </v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
 
     <v-row v-if="isLoading">
       <v-col v-for="n in 6" :key="n" cols="12" sm="6" md="4">
@@ -78,6 +158,41 @@ const selectedRegionId = ref<number | null>(null)
 const isLoading = ref(true)
 const error = ref<string | null>(null)
 
+// Create boulder state
+const showCreateDialog = ref(false)
+const isCreating = ref(false)
+const selectedRegion = ref<{ title: string; value: number } | string | null>(null)
+const newRegionType = ref<string | null>(null)
+const newRegionParentId = ref<number | null>(null)
+const newBoulder = ref({
+  name: "",
+  grade: null as number | null,
+  description: "",
+  coordinates: "",
+})
+
+const rules = {
+  required: (v: unknown) => (v !== null && v !== undefined && v !== "") || "Required",
+}
+
+const regionTypeOptions = ["country", "province", "area", "city"]
+
+const regionAutocompleteItems = computed(() =>
+  regions.value.map((r) => ({
+    title: `${r.name} (${r.type})`,
+    value: r.id,
+  }))
+)
+
+const isNewRegion = computed(() => typeof selectedRegion.value === "string")
+
+const parentRegionItems = computed(() =>
+  regions.value.map((r) => ({
+    title: `${r.name} (${r.type})`,
+    value: r.id,
+  }))
+)
+
 const regionItems = computed(() => {
   const types = new Set(regions.value.map((r) => r.type))
   const items: { title: string; value: number; props?: { subtitle: string } }[] = []
@@ -117,6 +232,60 @@ const filteredBoulders = computed(() => {
     (b) => b.regionId != null && matchingIds.has(b.regionId)
   )
 })
+
+function resetCreateDialog() {
+  showCreateDialog.value = false
+  newBoulder.value = { name: "", grade: null, description: "", coordinates: "" }
+  selectedRegion.value = null
+  newRegionType.value = null
+  newRegionParentId.value = null
+}
+
+async function handleCreateBoulder() {
+  if (!newBoulder.value.name || newBoulder.value.grade === null) return
+
+  isCreating.value = true
+  error.value = null
+
+  try {
+    let regionId: number | null = null
+
+    // If user typed a new region name (string), create it first
+    if (typeof selectedRegion.value === "string" && selectedRegion.value.trim()) {
+      if (!newRegionType.value) {
+        error.value = "Please select a type for the new region."
+        isCreating.value = false
+        return
+      }
+      const newRegion = await regionsApi.create({
+        type: newRegionType.value,
+        name: selectedRegion.value.trim(),
+        parentId: newRegionParentId.value,
+      })
+      regions.value.push(newRegion)
+      regionId = newRegion.id
+    } else if (selectedRegion.value && typeof selectedRegion.value === "object") {
+      regionId = selectedRegion.value.value
+    }
+
+    const created = await bouldersApi.create({
+      authorId: 1, // TODO: use actual logged-in user
+      name: newBoulder.value.name,
+      grade: newBoulder.value.grade,
+      regionId,
+      description: newBoulder.value.description || null,
+      coordinates: newBoulder.value.coordinates || null,
+    })
+
+    boulders.value.push(created)
+    resetCreateDialog()
+  } catch (e) {
+    error.value = "Failed to create boulder."
+    console.error(e)
+  } finally {
+    isCreating.value = false
+  }
+}
 
 onMounted(async () => {
   try {

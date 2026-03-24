@@ -39,7 +39,15 @@ export const bouldersApi = {
     return data
   },
   async create(attributes: Partial<Boulder>): Promise<Boulder> {
-    const { data } = await http.post("/api/boulders", attributes)
+    const { data } = await http.post("/api/boulders/", {
+      authorID: attributes.authorId,
+      regionID: attributes.regionId,
+      name: attributes.name,
+      description: attributes.description,
+      image: attributes.image,
+      grade: attributes.grade,
+      coordinates: attributes.coordinates,
+    })
     return data
   },
   // async update(boulderId: number, attributes: Partial<Boulder>): Promise<{ boulder: Boulder }> {
