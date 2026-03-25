@@ -6,6 +6,5 @@ if [ "$NODE_ENV" != "production" ]; then
     cd dist/
     PYTHONPATH=. uv run python src/app.py
 else
-    source .venv/bin/activate
-    PYTHONPATH=. python src/app.py
+    PYTHONPATH=. .venv/bin/python src/app.py
 fi
