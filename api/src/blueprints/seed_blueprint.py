@@ -5,7 +5,8 @@ from src.services.seeder import seed_data
 seed_blueprint = Blueprint("seed", __name__)
 
 
-@seed_blueprint.post("/seed")
+@seed_blueprint.get("/")
 def seed():
+    print("----- SEEDING -----")
     result = seed_data()
     return jsonify(result), 200
