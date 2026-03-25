@@ -88,7 +88,19 @@ TODO
 
 ### VIU Lab Machine Environment
 
-TODO
+1. Pull latest release from <https://github.com/burkkyy/bouldr/releases/latest>
+2. Create a `.env` file in top level directory with the appropriate values.
+
+   ```bash
+   NODE_ENV=production
+   API_PORT=5000
+   ```
+
+3. Boot app via
+
+   ```bash
+   ./bin/boot-app.sh
+   ```
 
 ### Test Production Build Locally
 

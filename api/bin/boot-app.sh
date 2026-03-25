@@ -6,5 +6,11 @@ if [ "$NODE_ENV" != "production" ]; then
     cd dist/
     PYTHONPATH=. uv run python src/app.py
 else
+    # For the csci lab machines
+    if [ ! -d ".venv" ]; then
+        python3 -m venv .venv
+        .venv/bin/pip install .
+    fi
+
     PYTHONPATH=. .venv/bin/python src/app.py
 fi
