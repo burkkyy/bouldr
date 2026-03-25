@@ -26,9 +26,10 @@ COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
 WORKDIR /root/app
 
 ENV NODE_ENV=production
+ENV UV_PYTHON=/usr/local/bin/python3
 
 COPY api ./
-RUN uv sync --frozen
+RUN uv sync --frozen --python /usr/local/bin/python3
 
 # Stage 3 - Production
 FROM python:3.11.2-slim
@@ -55,7 +56,6 @@ RUN echo "GIT_COMMIT_HASH=${GIT_COMMIT_HASH}" >> VERSION
 
 EXPOSE 5000
 
-COPY --from=api-build-stage /usr/src/api/bin/boot-app.sh ./bin/boot-app.sh
 RUN chmod +x ./bin/boot-app.sh
 
 CMD ["./bin/boot-app.sh"]
