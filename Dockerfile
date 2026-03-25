@@ -32,7 +32,7 @@ ENV TZ=UTC
 WORKDIR /root/app
 
 COPY api ./
-RUN rm -r .venv
+RUN rm -rf .venv
 
 COPY --from=web-build-stage /usr/src/web/dist ./src/web/
 
