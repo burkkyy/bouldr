@@ -92,11 +92,19 @@ TODO
 2. Create a `.env` file in top level directory with the appropriate values.
 
    ```bash
-   NODE_ENV=production
-   API_PORT=5000
+   TZ: "UTC"
+   NODE_ENV: "production"
+   API_PORT: "5001"
+   SQLALCHEMY_DATABASE_URI: "sqlite:////database.sqlite"
    ```
 
-3. Boot app via
+3. Set you `NODE_ENV` to production via
+
+   ```bash
+   export NODE_ENV=production
+   ```
+
+4. Boot app via
 
    ```bash
    ./bin/boot-app.sh
