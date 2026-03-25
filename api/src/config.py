@@ -3,9 +3,13 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 
-
+NODE_ENV = os.getenv("NODE_ENV", "development")
 BASE_DIR = Path(__file__).resolve().parent.parent
-load_dotenv(BASE_DIR / ".env.development")
+
+if NODE_ENV == "production":
+    load_dotenv(BASE_DIR / ".env")
+else:
+    load_dotenv(BASE_DIR / ".env.development")
 
 
 class Config:
