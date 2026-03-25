@@ -41,8 +41,10 @@ jobs:
 
       - name: Save image as tar
         run: |
-          docker save bouldr-app:${{ steps.generate_release_tag.outputs.next_release_tag }} \
-            | gzip > bouldr-app.tar.gz
+          docker create --name tmp bouldr-app:${{ steps.generate_release_tag.outputs.next_release_tag }}
+          docker cp tmp:/root/app ./app
+          tar -czf bouldr-app.tar.gz app
+          docker rm tmp
 
       - name: Create release
         uses: ncipollo/release-action@v1
