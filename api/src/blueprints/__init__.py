@@ -10,4 +10,4 @@ def register_blueprints(app):
     app.register_blueprint(regions_blueprint, url_prefix="/api/regions")
     app.register_blueprint(boulders_blueprint, url_prefix="/api/boulders")
     app.register_blueprint(sends_blueprint, url_prefix="/api/sends")
-    app.register_blueprint(seed_blueprint, url_prefix="/api")
+    app.register_blueprint(seed_blueprint, url_prefix="/api/seed")

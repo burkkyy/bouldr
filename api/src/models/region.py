@@ -17,27 +17,24 @@ class Region(db.Model):
     name: Mapped[str] = mapped_column(String, nullable=False)
 
     parent_id: Mapped[Optional[int]] = mapped_column(
-        "parentid",
         ForeignKey("regions.id"),
         nullable=True,
     )
 
     created_at: Mapped[datetime] = mapped_column(
-        "createdAt",
         DateTime,
         nullable=False,
         server_default=func.current_timestamp(),
     )
 
     updated_at: Mapped[datetime] = mapped_column(
-        "updatedAt",
         DateTime,
         nullable=False,
         server_default=func.current_timestamp(),
         onupdate=func.current_timestamp(),
     )
 
-    deleted_at: Mapped[Optional[datetime]] = mapped_column("deletedAt", DateTime)
+    deleted_at: Mapped[Optional[datetime]] = mapped_column(DateTime)
 
     def __repr__(self):
         return f"<Region {self.name}>"

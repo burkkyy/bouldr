@@ -12,7 +12,12 @@ def create_app():
     app = Flask(__name__)
     app.config.from_object(Config)
 
-    CORS(app, origins=Config.FRONTEND_URLS)
+    CORS(
+        app,
+        origins=Config.FRONTEND_URLS,
+        allow_headers=["Content-Type", "Authorization"],
+        methods=["GET", "POST", "PATCH", "DELETE", "OPTIONS"],
+    )
 
     db.init_app(app)
 

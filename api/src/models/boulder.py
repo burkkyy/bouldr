@@ -13,13 +13,11 @@ class Boulder(db.Model):
     id: Mapped[int] = mapped_column("id", primary_key=True, autoincrement=True)
 
     author_id: Mapped[int] = mapped_column(
-        "authorid",
         ForeignKey("users.id"),
         nullable=False,
     )
 
     region_id: Mapped[Optional[int]] = mapped_column(
-        "regionid",
         ForeignKey("regions.id"),
         nullable=True,
     )
@@ -35,21 +33,19 @@ class Boulder(db.Model):
     coordinates: Mapped[Optional[str]] = mapped_column(String)
 
     created_at: Mapped[datetime] = mapped_column(
-        "createdAt",
         DateTime,
         nullable=False,
         server_default=func.current_timestamp(),
     )
 
     updated_at: Mapped[datetime] = mapped_column(
-        "updatedAt",
         DateTime,
         nullable=False,
         server_default=func.current_timestamp(),
         onupdate=func.current_timestamp(),
     )
 
-    deleted_at: Mapped[Optional[datetime]] = mapped_column("deletedAt", DateTime)
+    deleted_at: Mapped[Optional[datetime]] = mapped_column(DateTime)
 
     def __repr__(self):
         return f"<Boulder {self.name}>"

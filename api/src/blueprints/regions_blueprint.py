@@ -63,7 +63,7 @@ def create():
         return jsonify({"error": "parent region not found"}), 400
 
     region = Region(
-        type=region_type,
+        type=region_type.lower(),
         name=name,
         parent_id=parent_id,
     )
@@ -86,7 +86,7 @@ def update(id):
     if "type" in data:
         if not data["type"]:
             return jsonify({"error": "type cannot be empty"}), 400
-        region.type = data["type"]
+        region.type = data["type"].lower()
 
     if "name" in data:
         if not data["name"]:

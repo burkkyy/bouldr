@@ -13,37 +13,33 @@ class Send(db.Model):
     id: Mapped[int] = mapped_column("id", primary_key=True, autoincrement=True)
 
     boulder_id: Mapped[int] = mapped_column(
-        "boulderid",
         ForeignKey("boulders.id"),
         nullable=False,
     )
 
     user_id: Mapped[int] = mapped_column(
-        "userid",
         ForeignKey("users.id"),
         nullable=False,
     )
 
     rating: Mapped[Optional[float]] = mapped_column(Float)
 
-    send_type: Mapped[int] = mapped_column("sendType", nullable=False)
+    send_type: Mapped[int] = mapped_column(nullable=False)
 
     created_at: Mapped[datetime] = mapped_column(
-        "createdAt",
         DateTime,
         nullable=False,
         server_default=func.current_timestamp(),
     )
 
     updated_at: Mapped[datetime] = mapped_column(
-        "updatedAt",
         DateTime,
         nullable=False,
         server_default=func.current_timestamp(),
         onupdate=func.current_timestamp(),
     )
 
-    deleted_at: Mapped[Optional[datetime]] = mapped_column("deletedAt", DateTime)
+    deleted_at: Mapped[Optional[datetime]] = mapped_column(DateTime)
 
     def __repr__(self):
         return f"<Send {self.id}>"
