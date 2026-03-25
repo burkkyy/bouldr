@@ -16,14 +16,12 @@ class User(db.Model):
     display_name: Mapped[Optional[str]] = mapped_column(String)
 
     created_at: Mapped[datetime] = mapped_column(
-        "createdAt",
         DateTime, 
         nullable=False, 
         server_default=func.current_timestamp()
     )
 
     updated_at: Mapped[datetime] = mapped_column(
-        "updatedAt",
         DateTime, 
         nullable=False, 
         server_default=func.current_timestamp(),
