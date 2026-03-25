@@ -23,25 +23,12 @@ RUN apt-get update
 
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
 
-WORKDIR /usr/src/api
+WORKDIR /root/app
 
 ENV NODE_ENV=production
 
 COPY api ./
 RUN uv sync --frozen
-
-# Being lazy and moving production only code manually
-RUN mkdir -p dist/src
-RUN mv src/blueprints ./dist/src/
-RUN mv src/models ./dist/src/
-RUN mv src/services ./dist/src/
-RUN mv src/__init__.py ./dist/src/
-RUN mv src/app.py ./dist/src/
-RUN mv src/config.py ./dist/src/
-
-RUN mv pyproject.toml ./dist/
-RUN mv uv.lock ./dist/
-RUN mv .venv ./dist/
 
 # Stage 3 - Production
 FROM python:3.11.2-slim
@@ -60,8 +47,8 @@ ENV TZ=UTC
 
 WORKDIR /root/app
 
-COPY --from=api-build-stage /usr/src/api/dist ./dist/
-COPY --from=web-build-stage /usr/src/web/dist ./dist/src/web/
+COPY --from=api-build-stage /root/app ./
+COPY --from=web-build-stage /usr/src/web/dist ./src/web/
 
 RUN echo "RELEASE_TAG=${RELEASE_TAG}" >> VERSION
 RUN echo "GIT_COMMIT_HASH=${GIT_COMMIT_HASH}" >> VERSION
