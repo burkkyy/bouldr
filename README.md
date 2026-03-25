@@ -92,10 +92,10 @@ TODO
 2. Create a `.env` file in top level directory with the appropriate values.
 
    ```bash
-   TZ: "UTC"
-   NODE_ENV: "production"
-   API_PORT: "5001"
-   SQLALCHEMY_DATABASE_URI: "sqlite:////database.sqlite"
+   TZ="UTC"
+   NODE_ENV="production"
+   API_PORT="5001"
+   SQLALCHEMY_DATABASE_URI="sqlite:////database.sqlite"
    ```
 
 3. Set you `NODE_ENV` to production via
