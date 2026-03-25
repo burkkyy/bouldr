@@ -95,7 +95,7 @@ TODO
    TZ="UTC"
    NODE_ENV="production"
    API_PORT="5001"
-   SQLALCHEMY_DATABASE_URI="sqlite:////database.sqlite"
+   SQLALCHEMY_DATABASE_URI="sqlite:///database.sqlite"
    ```
 
 3. Set you `NODE_ENV` to production via
