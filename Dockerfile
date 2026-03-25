@@ -16,27 +16,10 @@ COPY web ./
 ENV NODE_ENV=production
 RUN npm run build
 
-# Stage 2 - Build API
-FROM python:3.11.2-slim AS api-build-stage
-
-RUN apt-get update
-
-COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
-
-WORKDIR /root/app
-
-ENV NODE_ENV=production
-ENV UV_PYTHON=/usr/local/bin/python3
-
-COPY api ./
-RUN uv sync --frozen --python /usr/local/bin/python3
-
 # Stage 3 - Production
 FROM python:3.11.2-slim
 
 RUN apt-get update
-
-COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
 
 ARG RELEASE_TAG
 ARG GIT_COMMIT_HASH
@@ -48,7 +31,9 @@ ENV TZ=UTC
 
 WORKDIR /root/app
 
-COPY --from=api-build-stage /root/app ./
+COPY api ./
+RUN rm -r .venv
+
 COPY --from=web-build-stage /usr/src/web/dist ./src/web/
 
 RUN echo "RELEASE_TAG=${RELEASE_TAG}" >> VERSION
