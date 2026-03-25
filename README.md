@@ -101,7 +101,7 @@ Files:
 1. Create a `.env` file in top level directory with the appropriate values.
 
    ```bash
-   VITE_APPLICATION_NAME=bouldr
+   NODE_ENV=production
    API_PORT=5000
    ```
 
