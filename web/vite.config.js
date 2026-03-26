@@ -32,4 +32,5 @@ export default defineConfig({
   test: {
     globals: true, // https://vitest.dev/config/#globals
   },
+  base: "/web",
 });
