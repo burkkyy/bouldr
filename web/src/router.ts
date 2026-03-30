@@ -4,41 +4,32 @@ import { createRouter, createWebHistory, type RouteRecordRaw } from "vue-router"
 const routes: RouteRecordRaw[] = [
   {
     path: "/",
-    redirect: "/boulders",
-  },
-  {
-    path: "/",
-    component: () => import("@/layouts/DefaultLayout.vue"),
+    component: () => import("@/layouts/BlankLayout.vue"),
     children: [
       {
-        path: "/boulders",
-        name: "BouldersPage",
-        component: () => import("@/pages/BouldersPage.vue"),
-        meta: { requiresAuth: false },
-      },
-      {
-        path: "/boulders/:id",
-        name: "BoulderDetailPage",
-        component: () => import("@/pages/BoulderDetailPage.vue"),
+        path: "",
+        name: "SignInPage",
+        component: () => import("@/pages/SignInPage.vue"),
         meta: { requiresAuth: false },
       },
     ],
   },
   {
     path: "/",
-    component: () => import("@/layouts/BlankLayout.vue"),
+    component: () => import("@/layouts/DefaultLayout.vue"),
     children: [
       {
-        path: "/sign-in",
-        name: "SignInPage",
-        component: () => import("@/pages/SignInPage.vue"),
+        path: "boulders",
+        name: "BouldersPage",
+        component: () => import("@/pages/BouldersPage.vue"),
         meta: { requiresAuth: false },
       },
-      // {
-      //   path: "/:pathMatch(.*)*",
-      //   name: "NotFoundPage",
-      //   component: () => import("@/pages/NotFoundPage.vue"),
-      // },
+      {
+        path: "boulders/:id",
+        name: "BoulderDetailPage",
+        component: () => import("@/pages/BoulderDetailPage.vue"),
+        meta: { requiresAuth: false },
+      },
     ],
   },
   // {
