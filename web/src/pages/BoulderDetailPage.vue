@@ -41,13 +41,17 @@
         {{ boulder.description }}
       </p>
 
-      <v-img
+      <v-card
         v-if="boulder.image"
-        :src="boulder.image"
-        max-height="300"
-        class="rounded mb-6"
-        cover
-      />
+        class="pa-4"
+      >
+        <v-img
+          :src="boulder.image"
+          max-width="512"
+          max-height="512"
+          class="mx-auto"
+        />
+      </v-card>
 
       <div class="d-flex align-center justify-space-between mb-4">
         <h2 class="text-h5">Sends</h2>

@@ -2,11 +2,11 @@ import http from "@/api/http-client"
 
 export type Boulder = {
   id: number
-  authorId: number
-  regionId: number | null
+  authorID: number
+  regionID: number | null
   name: string
   description: string | null
-  image: string | null
+  image: string | null // base64 data URL
   grade: number
   coordinates: string | null
   createdAt: string
@@ -39,15 +39,7 @@ export const bouldersApi = {
     return data
   },
   async create(attributes: Partial<Boulder>): Promise<Boulder> {
-    const { data } = await http.post("/api/boulders/", {
-      authorID: attributes.authorId,
-      regionID: attributes.regionId,
-      name: attributes.name,
-      description: attributes.description,
-      image: attributes.image,
-      grade: attributes.grade,
-      coordinates: attributes.coordinates,
-    })
+    const { data } = await http.post("/api/boulders/", attributes)
     return data
   },
   // async update(boulderId: number, attributes: Partial<Boulder>): Promise<{ boulder: Boulder }> {

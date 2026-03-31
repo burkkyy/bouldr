@@ -6,10 +6,9 @@
       <v-btn
         color="primary"
         prepend-icon="mdi-plus"
-        @click="showCreateDialog = true"
-      >
-        Create Boulder
-      </v-btn>
+        text="Create Boulder"
+        @click="openBoulderCreateDialog"
+      />
     </div>
 
     <v-alert
@@ -24,96 +23,7 @@
       ref="mapContainer"
       style="height: 400px; width: 100%; border-radius: 8px; z-index: 0"
       class="mb-6"
-    />
-
-    <!-- Create Boulder Dialog -->
-    <v-dialog
-      v-model="showCreateDialog"
-      max-width="600"
-      persistent
-    >
-      <v-card>
-        <v-card-title>Create Boulder</v-card-title>
-        <v-card-text>
-          <v-form
-            ref="createForm"
-            @submit.prevent="handleCreateBoulder"
-          >
-            <v-text-field
-              v-model="newBoulder.name"
-              label="Name"
-              :rules="[required]"
-              class="mb-2"
-            />
-            <v-select
-              v-model="newBoulder.grade"
-              :items="gradeOptions"
-              item-title="label"
-              item-value="value"
-              label="Grade"
-              :rules="[required]"
-              class="mb-2"
-            />
-            <v-combobox
-              v-model="selectedRegion"
-              :items="regionAutocompleteItems"
-              label="Region"
-              clearable
-              class="mb-2"
-              hint="Select an existing region or type a new one"
-              persistent-hint
-              :rules="[required]"
-            />
-            <v-select
-              v-if="isNewRegion"
-              v-model="newRegionType"
-              :items="regionTypeOptions"
-              label="New region type"
-              :rules="[required]"
-              class="mb-2"
-            />
-            <v-select
-              v-if="isNewRegion && newRegionType && newRegionType !== 'Country'"
-              v-model="newRegionParentId"
-              :items="parentRegionItems"
-              label="Located in"
-              clearable
-              class="mb-2"
-              hint="Which region does this belong to?"
-              persistent-hint
-            />
-            <v-textarea
-              v-model="newBoulder.description"
-              label="Description"
-              rows="3"
-              class="mb-2"
-            />
-            <v-text-field
-              v-model="newBoulder.coordinates"
-              label="Coordinates"
-              placeholder="e.g. 49.123, -123.456"
-              :rules="[required]"
-            />
-          </v-form>
-        </v-card-text>
-        <v-card-actions>
-          <v-spacer />
-          <v-btn
-            variant="text"
-            @click="resetCreateDialog"
-            >Cancel</v-btn
-          >
-          <v-btn
-            color="primary"
-            variant="flat"
-            :loading="isCreating"
-            @click="handleCreateBoulder"
-          >
-            Create
-          </v-btn>
-        </v-card-actions>
-      </v-card>
-    </v-dialog>
+    ></div>
 
     <!-- Boulder list filtered by map bounds -->
     <h2 class="text-h5 mb-4">
@@ -186,6 +96,11 @@
       title="No boulders in view"
       text="Pan or zoom the map to find boulders."
     />
+
+    <BoulderCreateDialog
+      ref="boulderCreateDialog"
+      @created="refresh"
+    />
   </div>
 </template>
 
@@ -196,15 +111,8 @@ import "leaflet/dist/leaflet.css"
 
 import bouldersApi, { type Boulder } from "@/api/boulders-api"
 import regionsApi, { type Region } from "@/api/regions-api"
-import { required } from "@/utils/validators"
 
-import { useCurrentUser } from "@/use/use-current-user"
-import { VForm } from "vuetify/components"
-
-const { currentUser } = useCurrentUser()
-
-const COORD_REGEX =
-  /^-?(?:[1-8]?\d(?:\.\d+)?|90(?:\.0+)?),\s*-?(?:1[0-7]\d(?:\.\d+)?|180(?:\.0+)?|\d{1,2}(?:\.\d+)?)$/
+import BoulderCreateDialog from "@/components/boulders/BoulderCreateDialog.vue"
 
 const boulders = ref<Boulder[]>([])
 const regions = ref<Region[]>([])
@@ -216,63 +124,6 @@ const mapContainer = ref<HTMLElement | null>(null)
 let map: L.Map | null = null
 let markerLayer: L.LayerGroup | null = null
 const mapBounds = ref<L.LatLngBounds | null>(null)
-
-// Create boulder state
-const showCreateDialog = ref(false)
-const isCreating = ref(false)
-const selectedRegion = ref<{ title: string; value: number } | string | null>(null)
-const newRegionType = ref<string | null>(null)
-const newRegionParentId = ref<number | null>(null)
-const newBoulder = ref({
-  name: "",
-  grade: null as number | null,
-  description: "",
-  coordinates: "",
-})
-
-const grades = {
-  V0: 0,
-  V1: 1,
-  V2: 2,
-  V3: 3,
-  V4: 4,
-  V5: 5,
-  V6: 6,
-  V7: 7,
-  V8: 8,
-  V9: 9,
-  V10: 10,
-  V11: 11,
-  V12: 12,
-  V13: 13,
-  V14: 14,
-  V15: 15,
-  V16: 16,
-  V17: 17,
-}
-
-const gradeOptions = Object.entries(grades).map(([key, val]) => ({
-  label: key,
-  value: val,
-}))
-
-const regionTypeOptions = ["country", "province", "area", "city"]
-
-const regionAutocompleteItems = computed(() =>
-  regions.value.map((r) => ({
-    title: `${r.name} (${r.type})`,
-    value: r.id,
-  }))
-)
-
-const isNewRegion = computed(() => typeof selectedRegion.value === "string")
-
-const parentRegionItems = computed(() =>
-  regions.value.map((r) => ({
-    title: `${r.name} (${r.type})`,
-    value: r.id,
-  }))
-)
 
 function parseCoords(coords: string): [number, number] | null {
   const match = coords.match(/^(-?\d+\.?\d*),\s*(-?\d+\.?\d*)$/)
@@ -357,69 +208,13 @@ watch(
   { deep: true }
 )
 
-function resetCreateDialog() {
-  showCreateDialog.value = false
-  newBoulder.value = { name: "", grade: null, description: "", coordinates: "" }
-  selectedRegion.value = null
-  newRegionType.value = null
-  newRegionParentId.value = null
+const boulderCreateDialog = ref<InstanceType<typeof BoulderCreateDialog> | null>(null)
+
+function openBoulderCreateDialog() {
+  boulderCreateDialog.value?.show()
 }
 
-const createForm = ref<InstanceType<typeof VForm> | null>(null)
-
-async function handleCreateBoulder() {
-  if (createForm.value === null) return
-
-  const { valid } = await createForm.value.validate()
-
-  if (!valid) return
-
-  const coords = newBoulder.value.coordinates?.trim()
-  if (coords && !COORD_REGEX.test(coords)) return
-
-  isCreating.value = true
-  error.value = null
-
-  try {
-    let regionId: number | null = null
-
-    if (typeof selectedRegion.value === "string" && selectedRegion.value.trim()) {
-      if (!newRegionType.value) {
-        error.value = "Please select a type for the new region."
-        isCreating.value = false
-        return
-      }
-      const newRegion = await regionsApi.create({
-        type: newRegionType.value,
-        name: selectedRegion.value.trim(),
-        parentId: newRegionParentId.value,
-      })
-      regions.value.push(newRegion)
-      regionId = newRegion.id
-    } else if (selectedRegion.value && typeof selectedRegion.value === "object") {
-      regionId = selectedRegion.value.value
-    }
-
-    const created = await bouldersApi.create({
-      authorId: currentUser.value?.id ?? 1,
-      name: newBoulder.value.name,
-      grade: newBoulder.value.grade!,
-      regionId,
-      description: newBoulder.value.description || null,
-      coordinates: coords || null,
-    })
-
-    boulders.value.push(created)
-    resetCreateDialog()
-  } catch (e) {
-    error.value = "Failed to create boulder."
-    console.error(e)
-  } finally {
-    isCreating.value = false
-  }
-}
-
-onMounted(async () => {
+async function refresh() {
   try {
     const [bouldersData, regionsData] = await Promise.all([bouldersApi.list(), regionsApi.list()])
     boulders.value = bouldersData
@@ -432,9 +227,13 @@ onMounted(async () => {
   }
 
   await nextTick()
-  initMap()
   updateMarkers()
   fitMapToBoulders()
+}
+
+onMounted(async () => {
+  initMap()
+  refresh()
 })
 
 onBeforeUnmount(() => {
