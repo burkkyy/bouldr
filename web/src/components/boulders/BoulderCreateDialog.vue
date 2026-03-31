@@ -115,7 +115,7 @@ const newRegionParentId = ref<number | null>(null)
 
 const emit = defineEmits<{ created: [boulder: Boulder] }>()
 const boulder = ref<Partial<Boulder>>({
-  authorId: currentUser.value?.id ?? 1,
+  authorID: currentUser.value?.id ?? 1,
 })
 
 const grades = {
@@ -196,7 +196,7 @@ async function validateAndCreate() {
 
     const newBoulder = await bouldersApi.create({
       ...boulder.value,
-      regionId,
+      regionID: regionId,
       coordinates: coords || null,
     })
     emit("created", newBoulder)
