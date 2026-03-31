@@ -11,61 +11,102 @@
           ref="formRef"
           @submit.prevent="validateAndCreate"
         >
-          <v-text-field
-            v-model="boulder.name"
-            label="Name"
-            :rules="[required]"
-            class="mb-2"
-          />
-          <v-select
-            v-model="boulder.grade"
-            :items="gradeOptions"
-            item-title="label"
-            item-value="value"
-            label="Grade"
-            :rules="[required]"
-            class="mb-2"
-          />
-          <v-combobox
-            v-model="selectedRegion"
-            :items="regionAutocompleteItems"
-            label="Region"
-            clearable
-            class="mb-2"
-            hint="Select an existing region or type a new one"
-            persistent-hint
-            :rules="[required]"
-          />
-          <v-select
-            v-if="isNewRegion"
-            v-model="newRegionType"
-            :items="regionTypeOptions"
-            label="New region type"
-            :rules="[required]"
-            class="mb-2"
-          />
-          <v-select
-            v-if="isNewRegion && newRegionType && newRegionType !== 'Country'"
-            v-model="newRegionParentId"
-            :items="parentRegionItems"
-            label="Located in"
-            clearable
-            class="mb-2"
-            hint="Which region does this belong to?"
-            persistent-hint
-          />
-          <v-textarea
-            v-model="boulder.description"
-            label="Description"
-            rows="3"
-            class="mb-2"
-          />
-          <v-text-field
-            v-model="boulder.coordinates"
-            label="Coordinates"
-            placeholder="e.g. 49.123, -123.456"
-            :rules="[required]"
-          />
+          <v-row>
+            <v-col cols="12">
+              <v-text-field
+                v-model="boulder.name"
+                label="Name"
+                :rules="[required]"
+                class="mb-2"
+              />
+            </v-col>
+            <v-col cols="12">
+              <v-select
+                v-model="boulder.grade"
+                :items="gradeOptions"
+                item-title="label"
+                item-value="value"
+                label="Grade"
+                :rules="[required]"
+                class="mb-2"
+              />
+            </v-col>
+            <v-col cols="12">
+              <v-combobox
+                v-model="selectedRegion"
+                :items="regionAutocompleteItems"
+                label="Region"
+                clearable
+                class="mb-2"
+                hint="Select an existing region or type a new one"
+                persistent-hint
+                :rules="[required]"
+              />
+              <v-select
+                v-if="isNewRegion"
+                v-model="newRegionType"
+                :items="regionTypeOptions"
+                label="New region type"
+                :rules="[required]"
+                class="mb-2"
+              />
+              <v-select
+                v-if="isNewRegion && newRegionType && newRegionType !== 'Country'"
+                v-model="newRegionParentId"
+                :items="parentRegionItems"
+                label="Located in"
+                clearable
+                class="mb-2"
+                hint="Which region does this belong to?"
+                persistent-hint
+              />
+            </v-col>
+            <v-col cols="12">
+              <v-textarea
+                v-model="boulder.description"
+                label="Description"
+                rows="3"
+                class="mb-2"
+              />
+            </v-col>
+            <v-col cols="12">
+              <v-text-field
+                v-model="boulder.coordinates"
+                label="Coordinates"
+                placeholder="e.g. 49.123, -123.456"
+                :rules="[required]"
+              />
+            </v-col>
+          </v-row>
+          <v-row>
+            <v-col
+              cols="12"
+              md="6"
+            >
+              <v-label class="mb-2">Profile Image</v-label>
+              <v-file-input
+                v-model="imageFile"
+                accept="image/*"
+                prepend-inner-icon="mdi-camera"
+                label="Upload Image"
+                hide-details="auto"
+                clearable
+                @change="handleImageUpload"
+              />
+              <div
+                v-if="boulder.image"
+                class="mt-4 d-flex justify-center"
+              >
+                <v-img
+                  :src="boulder.image"
+                  max-width="200"
+                  max-height="200"
+                  class="rounded elevation-2"
+                  cover
+                />
+              </div>
+            </v-col>
+          </v-row>
         </v-form>
       </v-card-text>
       <v-card-actions>
@@ -94,10 +135,12 @@ import { VForm } from "vuetify/components"
 import bouldersApi, { type Boulder } from "@/api/boulders-api"
 import regionsApi from "@/api/regions-api"
 import { required } from "@/utils/validators"
+import { resizeToStandard } from "@/utils/image-resizer"
 
 import useSnack from "@/use/use-snack"
 import { useCurrentUser } from "@/use/use-current-user"
 import useRegions from "@/use/use-regions"
+import { isNil } from "lodash"
 
 const showDialog = ref(false)
 
@@ -114,6 +157,9 @@ const newRegionType = ref<string | null>(null)
 const newRegionParentId = ref<number | null>(null)
 
 const emit = defineEmits<{ created: [boulder: Boulder] }>()
+
+const imageFile = ref<File[] | File | null>(null)
+
 const boulder = ref<Partial<Boulder>>({
   authorID: currentUser.value?.id ?? 1,
 })
@@ -164,6 +210,23 @@ const parentRegionItems = computed(() =>
 
 const formRef = ref<InstanceType<typeof VForm> | null>(null)
 const snack = useSnack()
+
+async function handleImageUpload() {
+  const file = Array.isArray(imageFile.value) ? imageFile.value[0] : imageFile.value
+
+  if (isNil(file) || !(file instanceof File)) {
+    boulder.value.image = null
+    snack.error("Bad file upload")
+    return
+  }
+
+  try {
+    boulder.value.image = await resizeToStandard(file)
+  } catch (error) {
+    console.error("Error resizing profile image:", error)
+    snack.error("Failed to process profile image")
+  }
+}
 
 async function validateAndCreate() {
   if (formRef.value === null) return

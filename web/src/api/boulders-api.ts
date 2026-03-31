@@ -6,7 +6,7 @@ export type Boulder = {
   regionID: number | null
   name: string
   description: string | null
-  image: string | null
+  image: string | null // base64 data URL
   grade: number
   coordinates: string | null
   createdAt: string
