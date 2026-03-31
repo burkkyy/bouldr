@@ -3,33 +3,55 @@
     <div class="d-flex align-center mb-6">
       <h1 class="text-h4">Boulders</h1>
       <v-spacer />
-      <v-btn color="primary" prepend-icon="mdi-plus" @click="showCreateDialog = true">
+      <v-btn
+        color="primary"
+        prepend-icon="mdi-plus"
+        @click="showCreateDialog = true"
+      >
         Create Boulder
       </v-btn>
     </div>
 
-    <v-alert v-if="error" type="error" class="mb-4">{{ error }}</v-alert>
+    <v-alert
+      v-if="error"
+      type="error"
+      class="mb-4"
+      >{{ error }}</v-alert
+    >
 
     <!-- Map -->
-    <div ref="mapContainer" style="height: 400px; width: 100%; border-radius: 8px; z-index: 0" class="mb-6" />
+    <div
+      ref="mapContainer"
+      style="height: 400px; width: 100%; border-radius: 8px; z-index: 0"
+      class="mb-6"
+    />
 
     <!-- Create Boulder Dialog -->
-    <v-dialog v-model="showCreateDialog" max-width="600" persistent>
+    <v-dialog
+      v-model="showCreateDialog"
+      max-width="600"
+      persistent
+    >
       <v-card>
         <v-card-title>Create Boulder</v-card-title>
         <v-card-text>
-          <v-form ref="createForm" @submit.prevent="handleCreateBoulder">
+          <v-form
+            ref="createForm"
+            @submit.prevent="handleCreateBoulder"
+          >
             <v-text-field
               v-model="newBoulder.name"
               label="Name"
-              :rules="[rules.required]"
+              :rules="[required]"
               class="mb-2"
             />
-            <v-text-field
-              v-model.number="newBoulder.grade"
+            <v-select
+              v-model="newBoulder.grade"
+              :items="gradeOptions"
+              item-title="label"
+              item-value="value"
               label="Grade"
-              type="number"
-              :rules="[rules.required]"
+              :rules="[required]"
               class="mb-2"
             />
             <v-combobox
@@ -40,13 +62,14 @@
               class="mb-2"
               hint="Select an existing region or type a new one"
               persistent-hint
+              :rules="[required]"
             />
             <v-select
               v-if="isNewRegion"
               v-model="newRegionType"
               :items="regionTypeOptions"
               label="New region type"
-              :rules="[rules.required]"
+              :rules="[required]"
               class="mb-2"
             />
             <v-select
@@ -69,13 +92,17 @@
               v-model="newBoulder.coordinates"
               label="Coordinates"
               placeholder="e.g. 49.123, -123.456"
-              :rules="[rules.coordinates]"
+              :rules="[required]"
             />
           </v-form>
         </v-card-text>
         <v-card-actions>
           <v-spacer />
-          <v-btn variant="text" @click="resetCreateDialog">Cancel</v-btn>
+          <v-btn
+            variant="text"
+            @click="resetCreateDialog"
+            >Cancel</v-btn
+          >
           <v-btn
             color="primary"
             variant="flat"
@@ -89,10 +116,18 @@
     </v-dialog>
 
     <!-- Boulder list filtered by map bounds -->
-    <h2 class="text-h5 mb-4">{{ visibleBoulders.length }} boulder{{ visibleBoulders.length === 1 ? '' : 's' }} in view</h2>
+    <h2 class="text-h5 mb-4">
+      {{ visibleBoulders.length }} boulder{{ visibleBoulders.length === 1 ? "" : "s" }} in view
+    </h2>
 
     <v-row v-if="isLoading">
-      <v-col v-for="n in 6" :key="n" cols="12" sm="6" md="4">
+      <v-col
+        v-for="n in 6"
+        :key="n"
+        cols="12"
+        sm="6"
+        md="4"
+      >
         <v-skeleton-loader type="card" />
       </v-col>
     </v-row>
@@ -112,18 +147,31 @@
         >
           <v-card-title>{{ boulder.name }}</v-card-title>
           <v-card-subtitle>
-            <v-chip size="small" color="primary" class="mt-1">
-              Grade {{ boulder.grade }}
+            <v-chip
+              size="small"
+              color="primary"
+              class="mt-1"
+            >
+              V{{ boulder.grade }}
             </v-chip>
           </v-card-subtitle>
           <v-card-text>
-            <p v-if="boulder.description" class="text-body-2">
+            <p
+              v-if="boulder.description"
+              class="text-body-2"
+            >
               {{ boulder.description }}
             </p>
-            <p v-else class="text-body-2 text-medium-emphasis">
+            <p
+              v-else
+              class="text-body-2 text-medium-emphasis"
+            >
               No description
             </p>
-            <div v-if="boulder.coordinates" class="mt-2 text-caption text-medium-emphasis">
+            <div
+              v-if="boulder.coordinates"
+              class="mt-2 text-caption text-medium-emphasis"
+            >
               <v-icon size="small">mdi-map-marker</v-icon>
               {{ boulder.coordinates }}
             </div>
@@ -145,13 +193,18 @@
 import { computed, onMounted, onBeforeUnmount, ref, watch, nextTick } from "vue"
 import L from "leaflet"
 import "leaflet/dist/leaflet.css"
+
 import bouldersApi, { type Boulder } from "@/api/boulders-api"
 import regionsApi, { type Region } from "@/api/regions-api"
+import { required } from "@/utils/validators"
+
 import { useCurrentUser } from "@/use/use-current-user"
+import { VForm } from "vuetify/components"
 
 const { currentUser } = useCurrentUser()
 
-const COORD_REGEX = /^-?(?:[1-8]?\d(?:\.\d+)?|90(?:\.0+)?),\s*-?(?:1[0-7]\d(?:\.\d+)?|180(?:\.0+)?|\d{1,2}(?:\.\d+)?)$/
+const COORD_REGEX =
+  /^-?(?:[1-8]?\d(?:\.\d+)?|90(?:\.0+)?),\s*-?(?:1[0-7]\d(?:\.\d+)?|180(?:\.0+)?|\d{1,2}(?:\.\d+)?)$/
 
 const boulders = ref<Boulder[]>([])
 const regions = ref<Region[]>([])
@@ -177,13 +230,31 @@ const newBoulder = ref({
   coordinates: "",
 })
 
-const rules = {
-  required: (v: unknown) => (v !== null && v !== undefined && v !== "") || "Required",
-  coordinates: (v: string) => {
-    if (!v || !v.trim()) return true
-    return COORD_REGEX.test(v.trim()) || "Must be valid lat, lng (e.g. 49.123, -123.456)"
-  },
+const grades = {
+  V0: 0,
+  V1: 1,
+  V2: 2,
+  V3: 3,
+  V4: 4,
+  V5: 5,
+  V6: 6,
+  V7: 7,
+  V8: 8,
+  V9: 9,
+  V10: 10,
+  V11: 11,
+  V12: 12,
+  V13: 13,
+  V14: 14,
+  V15: 15,
+  V16: 16,
+  V17: 17,
 }
+
+const gradeOptions = Object.entries(grades).map(([key, val]) => ({
+  label: key,
+  value: val,
+}))
 
 const regionTypeOptions = ["country", "province", "area", "city"]
 
@@ -232,7 +303,7 @@ function updateMarkers() {
     if (!parsed) continue
 
     L.marker(parsed)
-      .bindPopup(`<strong>${boulder.name}</strong><br>Grade ${boulder.grade}`)
+      .bindPopup(`<strong>${boulder.name}</strong><br>V${boulder.grade}`)
       .addTo(markerLayer)
   }
 }
@@ -278,9 +349,13 @@ function fitMapToBoulders() {
   }
 }
 
-watch(boulders, () => {
-  updateMarkers()
-}, { deep: true })
+watch(
+  boulders,
+  () => {
+    updateMarkers()
+  },
+  { deep: true }
+)
 
 function resetCreateDialog() {
   showCreateDialog.value = false
@@ -290,8 +365,14 @@ function resetCreateDialog() {
   newRegionParentId.value = null
 }
 
+const createForm = ref<InstanceType<typeof VForm> | null>(null)
+
 async function handleCreateBoulder() {
-  if (!newBoulder.value.name || newBoulder.value.grade === null) return
+  if (createForm.value === null) return
+
+  const { valid } = await createForm.value.validate()
+
+  if (!valid) return
 
   const coords = newBoulder.value.coordinates?.trim()
   if (coords && !COORD_REGEX.test(coords)) return
@@ -322,7 +403,7 @@ async function handleCreateBoulder() {
     const created = await bouldersApi.create({
       authorId: currentUser.value?.id ?? 1,
       name: newBoulder.value.name,
-      grade: newBoulder.value.grade,
+      grade: newBoulder.value.grade!,
       regionId,
       description: newBoulder.value.description || null,
       coordinates: coords || null,
@@ -340,10 +421,7 @@ async function handleCreateBoulder() {
 
 onMounted(async () => {
   try {
-    const [bouldersData, regionsData] = await Promise.all([
-      bouldersApi.list(),
-      regionsApi.list(),
-    ])
+    const [bouldersData, regionsData] = await Promise.all([bouldersApi.list(), regionsApi.list()])
     boulders.value = bouldersData
     regions.value = regionsData
   } catch (e) {

@@ -11,15 +11,6 @@ const state = reactive<{
   options: {},
 })
 
-/**
- * @example
- * const snack = useSnack()
- * snack("Hello world", { color: "success" })
- *
- * @example
- * const snack = useSnack()
- * snack.success("Hello world")
- */
 export function useSnack(defaultOptions: VSnackbarProps = {}): {
   (message: string, options?: VSnackbarProps): void
   message: ToRef<string>

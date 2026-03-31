@@ -9,22 +9,37 @@
       Back to Boulders
     </v-btn>
 
-    <v-skeleton-loader v-if="isLoading" type="article" />
+    <v-skeleton-loader
+      v-if="isLoading"
+      type="article"
+    />
 
-    <v-alert v-else-if="error" type="error">{{ error }}</v-alert>
+    <v-alert
+      v-else-if="error"
+      type="error"
+      >{{ error }}</v-alert
+    >
 
     <template v-else-if="boulder">
       <h1 class="text-h4 mb-2">{{ boulder.name }}</h1>
 
       <div class="d-flex align-center ga-2 mb-4">
-        <v-chip color="primary">Grade {{ boulder.grade }}</v-chip>
-        <span v-if="boulder.coordinates" class="text-body-2 text-medium-emphasis">
+        <v-chip color="primary">V{{ boulder.grade }}</v-chip>
+        <span
+          v-if="boulder.coordinates"
+          class="text-body-2 text-medium-emphasis"
+        >
           <v-icon size="small">mdi-map-marker</v-icon>
           {{ boulder.coordinates }}
         </span>
       </div>
 
-      <p v-if="boulder.description" class="text-body-1 mb-6">{{ boulder.description }}</p>
+      <p
+        v-if="boulder.description"
+        class="text-body-1 mb-6"
+      >
+        {{ boulder.description }}
+      </p>
 
       <v-img
         v-if="boulder.image"
@@ -36,12 +51,19 @@
 
       <div class="d-flex align-center justify-space-between mb-4">
         <h2 class="text-h5">Sends</h2>
-        <v-btn color="primary" prepend-icon="mdi-plus" @click="onLogSendClick">
+        <v-btn
+          color="primary"
+          prepend-icon="mdi-plus"
+          @click="onLogSendClick"
+        >
           Log Send
         </v-btn>
       </div>
 
-      <v-dialog v-model="showLoginDialog" max-width="400">
+      <v-dialog
+        v-model="showLoginDialog"
+        max-width="400"
+      >
         <v-card title="Sign in to log a send">
           <v-card-text>
             <v-text-field
@@ -54,20 +76,35 @@
           </v-card-text>
           <v-card-actions>
             <v-spacer />
-            <v-btn variant="text" @click="showLoginDialog = false">Cancel</v-btn>
-            <v-btn color="primary" :loading="loginLoading" :disabled="!loginUsername.trim()" @click="handleLogin">
+            <v-btn
+              variant="text"
+              @click="showLoginDialog = false"
+              >Cancel</v-btn
+            >
+            <v-btn
+              color="primary"
+              :loading="loginLoading"
+              :disabled="!loginUsername.trim()"
+              @click="handleLogin"
+            >
               Sign In
             </v-btn>
           </v-card-actions>
         </v-card>
       </v-dialog>
 
-      <v-dialog v-model="showLogSendDialog" max-width="400">
+      <v-dialog
+        v-model="showLogSendDialog"
+        max-width="400"
+      >
         <v-card title="Log a Send">
           <v-card-text>
             <v-select
               v-model="newSend.sendType"
-              :items="[{ title: 'Flash', value: 1 }, { title: 'Send', value: 2 }]"
+              :items="[
+                { title: 'Flash', value: 1 },
+                { title: 'Send', value: 2 },
+              ]"
               label="Send Type"
               variant="outlined"
               class="mb-3"
@@ -84,26 +121,58 @@
           </v-card-text>
           <v-card-actions>
             <v-spacer />
-            <v-btn variant="text" @click="showLogSendDialog = false">Cancel</v-btn>
-            <v-btn color="primary" :loading="sendSubmitting" @click="submitSend">Submit</v-btn>
+            <v-btn
+              variant="text"
+              @click="showLogSendDialog = false"
+              >Cancel</v-btn
+            >
+            <v-btn
+              color="primary"
+              :loading="sendSubmitting"
+              @click="submitSend"
+              >Submit</v-btn
+            >
           </v-card-actions>
         </v-card>
       </v-dialog>
 
-      <v-skeleton-loader v-if="sendsLoading" type="list-item-three-line" />
+      <v-skeleton-loader
+        v-if="sendsLoading"
+        type="list-item-three-line"
+      />
 
-      <div v-else-if="sends.length > 0" class="d-flex flex-column ga-3">
-        <v-card v-for="send in sends" :key="send.id" variant="outlined">
+      <div
+        v-else-if="sends.length > 0"
+        class="d-flex flex-column ga-3"
+      >
+        <v-card
+          v-for="send in sends"
+          :key="send.id"
+          variant="outlined"
+        >
           <v-card-text>
             <div class="d-flex justify-space-between align-center">
               <div>
-                <span class="font-weight-medium">{{ send.displayName || send.username || `User #${send.userId}` }}</span>
-                <v-chip size="x-small" :color="send.sendType === 1 ? 'success' : 'info'" class="ml-2">
-                  {{ send.sendType === 1 ? 'Flash' : 'Send' }}
+                <span class="font-weight-medium">{{
+                  send.displayName || send.username || `User #${send.userId}`
+                }}</span>
+                <v-chip
+                  size="x-small"
+                  :color="send.sendType === 1 ? 'success' : 'info'"
+                  class="ml-2"
+                >
+                  {{ send.sendType === 1 ? "Flash" : "Send" }}
                 </v-chip>
               </div>
-              <div v-if="send.rating != null" class="d-flex align-center">
-                <v-icon size="small" color="amber">mdi-star</v-icon>
+              <div
+                v-if="send.rating != null"
+                class="d-flex align-center"
+              >
+                <v-icon
+                  size="small"
+                  color="amber"
+                  >mdi-star</v-icon
+                >
                 <span class="ml-1 text-body-2">{{ send.rating }} / 5</span>
               </div>
             </div>
@@ -127,8 +196,10 @@
 <script lang="ts" setup>
 import { onMounted, ref } from "vue"
 import { useRoute } from "vue-router"
+
 import bouldersApi, { type Boulder } from "@/api/boulders-api"
 import sendsApi, { type Send } from "@/api/sends-api"
+
 import { useCurrentUser } from "@/use/use-current-user"
 
 const route = useRoute()
