@@ -34,7 +34,61 @@
         cover
       />
 
-      <h2 class="text-h5 mb-4">Sends</h2>
+      <div class="d-flex align-center justify-space-between mb-4">
+        <h2 class="text-h5">Sends</h2>
+        <v-btn color="primary" prepend-icon="mdi-plus" @click="onLogSendClick">
+          Log Send
+        </v-btn>
+      </div>
+
+      <v-dialog v-model="showLoginDialog" max-width="400">
+        <v-card title="Sign in to log a send">
+          <v-card-text>
+            <v-text-field
+              v-model="loginUsername"
+              label="Username"
+              variant="outlined"
+              :error-messages="loginError"
+              @keyup.enter="handleLogin"
+            />
+          </v-card-text>
+          <v-card-actions>
+            <v-spacer />
+            <v-btn variant="text" @click="showLoginDialog = false">Cancel</v-btn>
+            <v-btn color="primary" :loading="loginLoading" :disabled="!loginUsername.trim()" @click="handleLogin">
+              Sign In
+            </v-btn>
+          </v-card-actions>
+        </v-card>
+      </v-dialog>
+
+      <v-dialog v-model="showLogSendDialog" max-width="400">
+        <v-card title="Log a Send">
+          <v-card-text>
+            <v-select
+              v-model="newSend.sendType"
+              :items="[{ title: 'Flash', value: 1 }, { title: 'Send', value: 2 }]"
+              label="Send Type"
+              variant="outlined"
+              class="mb-3"
+            />
+            <v-slider
+              v-model="newSend.rating"
+              :min="0"
+              :max="5"
+              :step="0.5"
+              label="Rating"
+              thumb-label
+              color="amber"
+            />
+          </v-card-text>
+          <v-card-actions>
+            <v-spacer />
+            <v-btn variant="text" @click="showLogSendDialog = false">Cancel</v-btn>
+            <v-btn color="primary" :loading="sendSubmitting" @click="submitSend">Submit</v-btn>
+          </v-card-actions>
+        </v-card>
+      </v-dialog>
 
       <v-skeleton-loader v-if="sendsLoading" type="list-item-three-line" />
 
@@ -75,15 +129,76 @@ import { onMounted, ref } from "vue"
 import { useRoute } from "vue-router"
 import bouldersApi, { type Boulder } from "@/api/boulders-api"
 import sendsApi, { type Send } from "@/api/sends-api"
+import { useCurrentUser } from "@/use/use-current-user"
 
 const route = useRoute()
 const boulderId = Number(route.params.id)
+const { currentUser, login } = useCurrentUser()
 
 const boulder = ref<Boulder | null>(null)
 const sends = ref<Send[]>([])
 const isLoading = ref(true)
 const sendsLoading = ref(true)
 const error = ref<string | null>(null)
+
+const showLogSendDialog = ref(false)
+const sendSubmitting = ref(false)
+const newSend = ref({ sendType: 2, rating: 0 })
+
+const showLoginDialog = ref(false)
+const loginUsername = ref("")
+const loginLoading = ref(false)
+const loginError = ref("")
+
+function onLogSendClick() {
+  if (currentUser.value) {
+    showLogSendDialog.value = true
+  } else {
+    loginUsername.value = ""
+    loginError.value = ""
+    showLoginDialog.value = true
+  }
+}
+
+async function handleLogin() {
+  const trimmed = loginUsername.value.trim()
+  if (!trimmed) return
+
+  loginLoading.value = true
+  loginError.value = ""
+
+  try {
+    await login(trimmed)
+    showLoginDialog.value = false
+    showLogSendDialog.value = true
+  } catch (e) {
+    loginError.value = "Failed to sign in. Please try again."
+    console.error(e)
+  } finally {
+    loginLoading.value = false
+  }
+}
+
+async function submitSend() {
+  if (!currentUser.value) return
+
+  sendSubmitting.value = true
+  try {
+    await sendsApi.create({
+      boulderID: boulderId,
+      userID: currentUser.value.id,
+      sendType: newSend.value.sendType,
+      rating: newSend.value.rating || null,
+    })
+    sends.value = await sendsApi.list({ boulderID: boulderId })
+    showLogSendDialog.value = false
+    newSend.value = { sendType: 2, rating: 0 }
+  } catch (e) {
+    console.error("Failed to log send:", e)
+  } finally {
+    sendSubmitting.value = false
+  }
+}
 
 function formatDate(iso: string): string {
   return new Date(iso).toLocaleDateString("en-US", {

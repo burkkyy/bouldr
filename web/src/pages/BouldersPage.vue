@@ -10,18 +10,8 @@
 
     <v-alert v-if="error" type="error" class="mb-4">{{ error }}</v-alert>
 
-    <v-row class="mb-4">
-      <v-col cols="12" sm="4">
-        <v-select
-          v-model="selectedRegionId"
-          :items="regionItems"
-          label="Filter by region"
-          clearable
-          density="compact"
-          variant="outlined"
-        />
-      </v-col>
-    </v-row>
+    <!-- Map -->
+    <div ref="mapContainer" style="height: 400px; width: 100%; border-radius: 8px; z-index: 0" class="mb-6" />
 
     <!-- Create Boulder Dialog -->
     <v-dialog v-model="showCreateDialog" max-width="600" persistent>
@@ -79,6 +69,7 @@
               v-model="newBoulder.coordinates"
               label="Coordinates"
               placeholder="e.g. 49.123, -123.456"
+              :rules="[rules.coordinates]"
             />
           </v-form>
         </v-card-text>
@@ -97,15 +88,18 @@
       </v-card>
     </v-dialog>
 
+    <!-- Boulder list filtered by map bounds -->
+    <h2 class="text-h5 mb-4">{{ visibleBoulders.length }} boulder{{ visibleBoulders.length === 1 ? '' : 's' }} in view</h2>
+
     <v-row v-if="isLoading">
       <v-col v-for="n in 6" :key="n" cols="12" sm="6" md="4">
         <v-skeleton-loader type="card" />
       </v-col>
     </v-row>
 
-    <v-row v-else-if="filteredBoulders.length > 0">
+    <v-row v-else-if="visibleBoulders.length > 0">
       <v-col
-        v-for="boulder in filteredBoulders"
+        v-for="boulder in visibleBoulders"
         :key="boulder.id"
         cols="12"
         sm="6"
@@ -141,22 +135,34 @@
     <v-empty-state
       v-else
       icon="mdi-image-broken-variant"
-      title="No boulders found"
-      text="There are no boulders matching your filters."
+      title="No boulders in view"
+      text="Pan or zoom the map to find boulders."
     />
   </div>
 </template>
 
 <script lang="ts" setup>
-import { computed, onMounted, ref } from "vue"
+import { computed, onMounted, onBeforeUnmount, ref, watch, nextTick } from "vue"
+import L from "leaflet"
+import "leaflet/dist/leaflet.css"
 import bouldersApi, { type Boulder } from "@/api/boulders-api"
 import regionsApi, { type Region } from "@/api/regions-api"
+import { useCurrentUser } from "@/use/use-current-user"
+
+const { currentUser } = useCurrentUser()
+
+const COORD_REGEX = /^-?(?:[1-8]?\d(?:\.\d+)?|90(?:\.0+)?),\s*-?(?:1[0-7]\d(?:\.\d+)?|180(?:\.0+)?|\d{1,2}(?:\.\d+)?)$/
 
 const boulders = ref<Boulder[]>([])
 const regions = ref<Region[]>([])
-const selectedRegionId = ref<number | null>(null)
 const isLoading = ref(true)
 const error = ref<string | null>(null)
+
+// Map state
+const mapContainer = ref<HTMLElement | null>(null)
+let map: L.Map | null = null
+let markerLayer: L.LayerGroup | null = null
+const mapBounds = ref<L.LatLngBounds | null>(null)
 
 // Create boulder state
 const showCreateDialog = ref(false)
@@ -173,6 +179,10 @@ const newBoulder = ref({
 
 const rules = {
   required: (v: unknown) => (v !== null && v !== undefined && v !== "") || "Required",
+  coordinates: (v: string) => {
+    if (!v || !v.trim()) return true
+    return COORD_REGEX.test(v.trim()) || "Must be valid lat, lng (e.g. 49.123, -123.456)"
+  },
 }
 
 const regionTypeOptions = ["country", "province", "area", "city"]
@@ -193,45 +203,84 @@ const parentRegionItems = computed(() =>
   }))
 )
 
-const regionItems = computed(() => {
-  const types = new Set(regions.value.map((r) => r.type))
-  const items: { title: string; value: number; props?: { subtitle: string } }[] = []
-  for (const type of types) {
-    const regionsOfType = regions.value.filter((r) => r.type === type)
-    for (const region of regionsOfType) {
-      items.push({
-        title: region.name,
-        value: region.id,
-        props: { subtitle: type },
-      })
-    }
-  }
-  return items
+function parseCoords(coords: string): [number, number] | null {
+  const match = coords.match(/^(-?\d+\.?\d*),\s*(-?\d+\.?\d*)$/)
+  if (!match) return null
+  const lat = parseFloat(match[1])
+  const lng = parseFloat(match[2])
+  if (lat < -90 || lat > 90 || lng < -180 || lng > 180) return null
+  return [lat, lng]
+}
+
+const visibleBoulders = computed(() => {
+  if (!mapBounds.value) return boulders.value
+  return boulders.value.filter((b) => {
+    if (!b.coordinates) return false
+    const parsed = parseCoords(b.coordinates)
+    if (!parsed) return false
+    return mapBounds.value!.contains(L.latLng(parsed[0], parsed[1]))
+  })
 })
 
-const filteredBoulders = computed(() => {
-  if (selectedRegionId.value == null) return boulders.value
+function updateMarkers() {
+  if (!markerLayer || !map) return
+  markerLayer.clearLayers()
 
-  // Find the selected region and all its sub regions
-  const matchingIds = new Set<number>()
-  matchingIds.add(selectedRegionId.value)
+  for (const boulder of boulders.value) {
+    if (!boulder.coordinates) continue
+    const parsed = parseCoords(boulder.coordinates)
+    if (!parsed) continue
 
-  // Go thru region tree to find subregions
-  let added = true
-  while (added) {
-    added = false
-    for (const region of regions.value) {
-      if (region.parentId != null && matchingIds.has(region.parentId) && !matchingIds.has(region.id)) {
-        matchingIds.add(region.id)
-        added = true
-      }
-    }
+    L.marker(parsed)
+      .bindPopup(`<strong>${boulder.name}</strong><br>Grade ${boulder.grade}`)
+      .addTo(markerLayer)
   }
+}
 
-  return boulders.value.filter(
-    (b) => b.regionId != null && matchingIds.has(b.regionId)
-  )
-})
+function initMap() {
+  if (!mapContainer.value) return
+
+  // Fix Leaflet default icon paths
+  delete (L.Icon.Default.prototype as unknown as Record<string, unknown>)._getIconUrl
+  L.Icon.Default.mergeOptions({
+    iconRetinaUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png",
+    iconUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
+    shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
+  })
+
+  map = L.map(mapContainer.value).setView([49.32, -123.13], 10)
+
+  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+    maxZoom: 19,
+  }).addTo(map)
+
+  markerLayer = L.layerGroup().addTo(map)
+
+  const onBoundsChange = () => {
+    if (map) mapBounds.value = map.getBounds()
+  }
+  map.on("moveend", onBoundsChange)
+  map.on("zoomend", onBoundsChange)
+  onBoundsChange()
+}
+
+function fitMapToBoulders() {
+  if (!map) return
+  const points: [number, number][] = []
+  for (const b of boulders.value) {
+    if (!b.coordinates) continue
+    const parsed = parseCoords(b.coordinates)
+    if (parsed) points.push(parsed)
+  }
+  if (points.length > 0) {
+    map.fitBounds(L.latLngBounds(points.map((p) => L.latLng(p[0], p[1]))), { padding: [40, 40] })
+  }
+}
+
+watch(boulders, () => {
+  updateMarkers()
+}, { deep: true })
 
 function resetCreateDialog() {
   showCreateDialog.value = false
@@ -244,13 +293,15 @@ function resetCreateDialog() {
 async function handleCreateBoulder() {
   if (!newBoulder.value.name || newBoulder.value.grade === null) return
 
+  const coords = newBoulder.value.coordinates?.trim()
+  if (coords && !COORD_REGEX.test(coords)) return
+
   isCreating.value = true
   error.value = null
 
   try {
     let regionId: number | null = null
 
-    // If user typed a new region name (string), create it first
     if (typeof selectedRegion.value === "string" && selectedRegion.value.trim()) {
       if (!newRegionType.value) {
         error.value = "Please select a type for the new region."
@@ -269,12 +320,12 @@ async function handleCreateBoulder() {
     }
 
     const created = await bouldersApi.create({
-      authorId: 1, // TODO: use actual logged-in user
+      authorId: currentUser.value?.id ?? 1,
       name: newBoulder.value.name,
       grade: newBoulder.value.grade,
       regionId,
       description: newBoulder.value.description || null,
-      coordinates: newBoulder.value.coordinates || null,
+      coordinates: coords || null,
     })
 
     boulders.value.push(created)
@@ -300,6 +351,18 @@ onMounted(async () => {
     console.error(e)
   } finally {
     isLoading.value = false
+  }
+
+  await nextTick()
+  initMap()
+  updateMarkers()
+  fitMapToBoulders()
+})
+
+onBeforeUnmount(() => {
+  if (map) {
+    map.remove()
+    map = null
   }
 })
 </script>

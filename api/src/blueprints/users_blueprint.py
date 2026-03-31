@@ -27,9 +27,13 @@ def get_active_user(id: int) -> User | None:
 
 @users_blueprint.get("/")
 def index():
-    users = db.session.execute(
-        db.select(User).where(User.deleted_at.is_(None))
-    ).scalars().all()
+    query = db.select(User).where(User.deleted_at.is_(None))
+
+    username = request.args.get("username")
+    if username is not None:
+        query = query.where(User.username == username)
+
+    users = db.session.execute(query).scalars().all()
 
     return jsonify([serialize_user(user) for user in users])
 

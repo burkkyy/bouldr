@@ -1,9 +1,14 @@
+import re
 from datetime import datetime
 
 from flask import Blueprint, jsonify, request
 
 from src import db
 from src.models import Boulder, User
+
+COORDINATES_RE = re.compile(
+    r"^-?(?:[1-8]?\d(?:\.\d+)?|90(?:\.0+)?),\s*-?(?:1[0-7]\d(?:\.\d+)?|180(?:\.0+)?|\d{1,2}(?:\.\d+)?)$"
+)
 
 boulders_blueprint = Blueprint("boulders", __name__)
 
@@ -79,6 +84,10 @@ def create():
     if get_active_user(author_id) is None:
         return jsonify({"error": "author not found"}), 400
 
+    coordinates = data.get("coordinates")
+    if coordinates and not COORDINATES_RE.match(coordinates.strip()):
+        return jsonify({"error": "coordinates must be in 'lat, lng' format (e.g. 49.123, -123.456)"}), 400
+
     boulder = Boulder(
         author_id=author_id,
         region_id=data.get("regionID"),
@@ -86,7 +95,7 @@ def create():
         description=data.get("description"),
         image=data.get("image"),
         grade=grade,
-        coordinates=data.get("coordinates"),
+        coordinates=coordinates.strip() if coordinates else None,
     )
 
     db.session.add(boulder)
@@ -132,7 +141,9 @@ def update(id):
         boulder.grade = data["grade"]
 
     if "coordinates" in data:
-        boulder.coordinates = data["coordinates"]
+        if data["coordinates"] and not COORDINATES_RE.match(data["coordinates"].strip()):
+            return jsonify({"error": "coordinates must be in 'lat, lng' format (e.g. 49.123, -123.456)"}), 400
+        boulder.coordinates = data["coordinates"].strip() if data["coordinates"] else None
 
     db.session.commit()
 

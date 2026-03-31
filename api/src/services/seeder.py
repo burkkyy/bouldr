@@ -81,103 +81,113 @@ def seed_data():
 
     db.session.flush()
 
-    boulder_1 = db.session.execute(
-        db.select(Boulder).where(
-            Boulder.name == "the egg",
-            Boulder.author_id == user_1.id,
+
+    region_3 = db.session.execute(
+        db.select(Region).where(
+            Region.type == "city",
+            Region.name == "Nanaimo",
         )
     ).scalar_one_or_none()
 
-    if boulder_1 is None:
-        boulder_1 = Boulder(
-            author_id=user_1.id,
-            region_id=region_2.id,
-            name="the egg",
-            description="short powerful roof climb",
-            image="https://example.com/egg.jpg",
-            grade=5,
-            coordinates="48.778,-123.707",
+    if region_3 is None:
+        region_3 = Region(
+            type="city",
+            name="Nanaimo",
+            parent_id=region_2.id,
         )
-        db.session.add(boulder_1)
-        created["boulders"] += 1
+        db.session.add(region_3)
+        created["regions"] += 1
     else:
-        boulder_1.region_id = region_2.id
-        boulder_1.description = "short powerful roof climb"
-        boulder_1.image = "https://example.com/egg.jpg"
-        boulder_1.grade = 5
-        boulder_1.coordinates = "48.778,-123.707"
-        updated["boulders"] += 1
+        region_3.parent_id = region_2.id
+        updated["regions"] += 1
 
-    boulder_2 = db.session.execute(
-        db.select(Boulder).where(
-            Boulder.name == "granite dream",
-            Boulder.author_id == user_2.id,
-        )
-    ).scalar_one_or_none()
+    db.session.flush()
+       
 
-    if boulder_2 is None:
-        boulder_2 = Boulder(
-            author_id=user_2.id,
-            region_id=region_2.id,
-            name="granite dream",
-            description="technical face with small crimps",
-            image="https://example.com/granite.jpg",
-            grade=7,
-            coordinates="48.800,-123.690",
-        )
-        db.session.add(boulder_2)
-        created["boulders"] += 1
-    else:
-        boulder_2.region_id = region_2.id
-        boulder_2.description = "technical face with small crimps"
-        boulder_2.image = "https://example.com/granite.jpg"
-        boulder_2.grade = 7
-        boulder_2.coordinates = "48.800,-123.690"
-        updated["boulders"] += 1
+    seed_boulders = [
+        {
+            "name": "the egg",
+            "author": user_1,
+            "region": region_2,
+            "description": "short powerful roof climb",
+            "grade": 5,
+            "coordinates": "48.778,-123.707",
+        },
+        {
+            "name": "granite dream",
+            "author": user_2,
+            "region": region_2,
+            "description": "technical face with small crimps",
+            "grade": 7,
+            "coordinates": "48.800,-123.690",
+        },
+        {
+            "name": "Wip Climbing",
+            "author": user_2,
+            "region": region_2,
+            "description": "Cllimbing gym in nanaimo",
+            "grade": 5,
+            "coordinates": "49.1822632, -123.9844017",
+        }
+    ]
+
+    boulder_objects = []
+    for b in seed_boulders:
+        existing = db.session.execute(
+            db.select(Boulder).where(
+                Boulder.name == b["name"],
+                Boulder.author_id == b["author"].id,
+            )
+        ).scalar_one_or_none()
+
+        if existing is None:
+            existing = Boulder(
+                author_id=b["author"].id,
+                region_id=b["region"].id,
+                name=b["name"],
+                description=b["description"],
+                grade=b["grade"],
+                coordinates=b["coordinates"],
+            )
+            db.session.add(existing)
+            created["boulders"] += 1
+        else:
+            existing.region_id = b["region"].id
+            existing.description = b["description"]
+            existing.grade = b["grade"]
+            existing.coordinates = b["coordinates"]
+            updated["boulders"] += 1
+
+        boulder_objects.append(existing)
 
     db.session.flush()
 
-    send_1 = db.session.execute(
-        db.select(Send).where(
-            Send.boulder_id == boulder_1.id,
-            Send.user_id == user_2.id,
-        )
-    ).scalar_one_or_none()
+    seed_sends = [
+        {"boulder": boulder_objects[0], "user": user_2, "rating": 4.5, "send_type": 1},
+        {"boulder": boulder_objects[1], "user": user_1, "rating": 5.0, "send_type": 2},
+    ]
 
-    if send_1 is None:
-        send_1 = Send(
-            boulder_id=boulder_1.id,
-            user_id=user_2.id,
-            rating=4.5,
-            send_type=1,
-        )
-        db.session.add(send_1)
-        created["sends"] += 1
-    else:
-        send_1.rating = 4.5
-        send_1.send_type = 1
-        updated["sends"] += 1
+    for s in seed_sends:
+        existing = db.session.execute(
+            db.select(Send).where(
+                Send.boulder_id == s["boulder"].id,
+                Send.user_id == s["user"].id,
+            )
+        ).scalar_one_or_none()
 
-    send_2 = db.session.execute(
-        db.select(Send).where(
-            Send.boulder_id == boulder_2.id,
-            Send.user_id == user_1.id,
-        )
-    ).scalar_one_or_none()
-
-    if send_2 is None:
-        send_2 = Send(
-            boulder_id=boulder_2.id,
-            user_id=user_1.id,
-            rating=5.0,
-            send_type=2,
-        )
-        db.session.add(send_2)
-        created["sends"] += 1
-    else:
-        send_2.rating = 5.0
-        send_2.send_type = 2
-        updated["sends"] += 1
+        if existing is None:
+            existing = Send(
+                boulder_id=s["boulder"].id,
+                user_id=s["user"].id,
+                rating=s["rating"],
+                send_type=s["send_type"],
+            )
+            db.session.add(existing)
+            created["sends"] += 1
+        else:
+            existing.rating = s["rating"]
+            existing.send_type = s["send_type"]
+            updated["sends"] += 1
 
     db.session.commit()
 

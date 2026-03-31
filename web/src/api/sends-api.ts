@@ -12,9 +12,20 @@ export type Send = {
   updatedAt: string
 }
 
+export type CreateSendAttributes = {
+  boulderID: number
+  userID: number
+  sendType: number
+  rating?: number | null
+}
+
 export const sendsApi = {
   async list(params: { boulderID?: number } = {}): Promise<Send[]> {
     const { data } = await http.get("/api/sends", { params })
+    return data
+  },
+  async create(attributes: CreateSendAttributes): Promise<Send> {
+    const { data } = await http.post("/api/sends/", attributes)
     return data
   },
 }

@@ -8,7 +8,7 @@ import vuetify from "vite-plugin-vuetify";
 import { defineConfig } from "vite";
 
 // https://vitejs.dev/config/
-export default defineConfig({
+export default defineConfig(({ mode }) => ({
   plugins: [
     vue(),
     // https://github.com/vuetifyjs/vuetify-loader/tree/next/packages/vite-plugin
@@ -32,5 +32,5 @@ export default defineConfig({
   test: {
     globals: true, // https://vitest.dev/config/#globals
   },
-  base: "/web",
-});
+  base: mode === "production" ? "/web/" : "/",
+}));
