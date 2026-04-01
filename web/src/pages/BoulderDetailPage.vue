@@ -48,39 +48,58 @@
         </v-col>
 
         <v-col
-          cols="8"
+          cols="12"
           md="5"
         >
-          <a
-            v-if="boulder.image"
-            :href="imageUrl"
-            target="_blank"
-          >
-            <v-card
-              class="overflow-hidden"
-              rounded="lg"
-              elevation="2"
-              style="cursor: pointer"
+          <div class="d-flex ga-3" :class="{ 'flex-column': !boulder.coordinates }">
+            <div :style="boulder.coordinates ? 'flex: 1; min-width: 0' : ''">
+              <a
+                v-if="boulder.image"
+                :href="imageUrl"
+                target="_blank"
+              >
+                <v-card
+                  class="overflow-hidden"
+                  rounded="lg"
+                  elevation="2"
+                  style="cursor: pointer"
+                >
+                  <v-img
+                    :src="imageUrl"
+                    :max-height="boulder.coordinates ? 200 : 200"
+                    contain
+                    class="bg-grey-darken-4"
+                  />
+                </v-card>
+              </a>
+              <div
+                v-else
+                class="d-flex align-center justify-center bg-grey-lighten-3 rounded-lg"
+                style="height: 200px"
+              >
+                <v-icon
+                  size="64"
+                  color="grey-lighten-1"
+                >
+                  mdi-image-filter-hdr
+                </v-icon>
+              </div>
+            </div>
+            <div
+              v-if="boulder.coordinates"
+              style="flex: 1; min-width: 0"
             >
-              <v-img
-                :src="imageUrl"
-                max-height="200"
-                contain
-                class="bg-grey-darken-4"
-              />
-            </v-card>
-          </a>
-          <div
-            v-else
-            class="d-flex align-center justify-center bg-grey-lighten-3 rounded-lg"
-            style="height: 200px"
-          >
-            <v-icon
-              size="64"
-              color="grey-lighten-1"
-            >
-              mdi-image-filter-hdr
-            </v-icon>
+              <v-card
+                rounded="lg"
+                elevation="2"
+                class="overflow-hidden"
+              >
+                <div
+                  ref="detailMapContainer"
+                  style="height: 200px; width: 100%"
+                ></div>
+              </v-card>
+            </div>
           </div>
         </v-col>
       </v-row>
@@ -230,8 +249,10 @@
 </template>
 
 <script lang="ts" setup>
-import { computed, onMounted, ref } from "vue"
+import { computed, nextTick, onBeforeUnmount, onMounted, ref } from "vue"
 import { useRoute } from "vue-router"
+import L from "leaflet"
+import "leaflet/dist/leaflet.css"
 
 import bouldersApi, { type Boulder } from "@/api/boulders-api"
 import sendsApi, { type Send } from "@/api/sends-api"
@@ -250,6 +271,9 @@ const sends = ref<Send[]>([])
 const isLoading = ref(true)
 const sendsLoading = ref(true)
 const error = ref<string | null>(null)
+
+const detailMapContainer = ref<HTMLElement | null>(null)
+let detailMap: L.Map | null = null
 
 const showLogSendDialog = ref(false)
 const sendSubmitting = ref(false)
@@ -318,6 +342,38 @@ function formatDate(iso: string): string {
   })
 }
 
+function parseCoords(coords: string): [number, number] | null {
+  const match = coords.match(/^(-?\d+\.?\d*),\s*(-?\d+\.?\d*)$/)
+  if (!match) return null
+  const lat = parseFloat(match[1])
+  const lng = parseFloat(match[2])
+  if (lat < -90 || lat > 90 || lng < -180 || lng > 180) return null
+  return [lat, lng]
+}
+
+function initDetailMap() {
+  if (!detailMapContainer.value || !boulder.value?.coordinates) return
+
+  const parsed = parseCoords(boulder.value.coordinates)
+  if (!parsed) return
+
+  delete (L.Icon.Default.prototype as unknown as Record<string, unknown>)._getIconUrl
+  L.Icon.Default.mergeOptions({
+    iconRetinaUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png",
+    iconUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
+    shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
+  })
+
+  detailMap = L.map(detailMapContainer.value).setView(parsed, 14)
+
+  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+    maxZoom: 19,
+  }).addTo(detailMap)
+
+  L.marker(parsed).addTo(detailMap)
+}
+
 onMounted(async () => {
   try {
     boulder.value = await bouldersApi.get(boulderId)
@@ -328,12 +384,22 @@ onMounted(async () => {
     isLoading.value = false
   }
 
+  await nextTick()
+  initDetailMap()
+
   try {
     sends.value = await sendsApi.list({ boulderID: boulderId })
   } catch (e) {
     console.error("Failed to load sends:", e)
   } finally {
     sendsLoading.value = false
+  }
+})
+
+onBeforeUnmount(() => {
+  if (detailMap) {
+    detailMap.remove()
+    detailMap = null
   }
 })
 </script>

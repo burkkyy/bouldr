@@ -125,6 +125,7 @@
 
 <script lang="ts" setup>
 import { computed, onMounted, onBeforeUnmount, ref, watch, nextTick } from "vue"
+import { useRouter } from "vue-router"
 import L from "leaflet"
 import "leaflet/dist/leaflet.css"
 
@@ -133,6 +134,8 @@ import regionsApi, { type Region } from "@/api/regions-api"
 import { API_BASE_URL } from "@/config"
 
 import BoulderCreateDialog from "@/components/boulders/BoulderCreateDialog.vue"
+
+const router = useRouter()
 
 const boulders = ref<Boulder[]>([])
 const regions = ref<Region[]>([])
@@ -173,9 +176,20 @@ function updateMarkers() {
     const parsed = parseCoords(boulder.coordinates)
     if (!parsed) continue
 
-    L.marker(parsed)
-      .bindPopup(`<strong>${boulder.name}</strong><br>V${boulder.grade}`)
+    const marker = L.marker(parsed)
+      .bindPopup(
+        `<strong>${boulder.name}</strong><br>V${boulder.grade}<br><a href="javascript:void(0)" class="boulder-popup-link" data-boulder-id="${boulder.id}">View Details</a>`
+      )
       .addTo(markerLayer)
+
+    marker.on("popupopen", () => {
+      const link = document.querySelector(`.boulder-popup-link[data-boulder-id="${boulder.id}"]`)
+      if (link) {
+        link.addEventListener("click", () => {
+          router.push({ name: "BoulderDetailPage", params: { id: boulder.id } })
+        })
+      }
+    })
   }
 }
 
