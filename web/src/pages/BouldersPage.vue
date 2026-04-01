@@ -55,6 +55,25 @@
           :to="{ name: 'BoulderDetailPage', params: { id: boulder.id } }"
           hover
         >
+          <v-img
+            v-if="boulder.image"
+            :src="boulder.image"
+            height="180"
+            cover
+            class="bg-grey-lighten-2"
+          />
+          <div
+            v-else
+            class="d-flex align-center justify-center bg-grey-lighten-3"
+            style="height: 180px"
+          >
+            <v-icon
+              size="64"
+              color="grey-lighten-1"
+            >
+              mdi-image-filter-hdr
+            </v-icon>
+          </div>
           <v-card-title>{{ boulder.name }}</v-card-title>
           <v-card-subtitle>
             <v-chip

@@ -1,5 +1,22 @@
+import base64
+import os
+
 from src import db
 from src.models import User, Region, Boulder, Send
+
+SEED_IMAGES_DIR = os.path.join(os.path.dirname(__file__), "seed_images")
+
+
+def load_seed_image(filename):
+    path = os.path.join(SEED_IMAGES_DIR, filename)
+    if not os.path.exists(path):
+        return None
+    with open(path, "rb") as f:
+        data = f.read()
+    ext = os.path.splitext(filename)[1].lstrip(".").lower()
+    if ext == "jpg":
+        ext = "jpeg"
+    return f"data:image/{ext};base64,{base64.b64encode(data).decode()}"
 
 
 def seed_data():
@@ -102,6 +119,27 @@ def seed_data():
         updated["regions"] += 1
 
     db.session.flush()
+
+    region_4 = db.session.execute(
+        db.select(Region).where(
+            Region.type == "country",
+            Region.name == "Finland",
+        )
+    ).scalar_one_or_none()
+
+    if region_4 is None:
+        region_4 = Region(
+            type="country",
+            name="Finland",
+            parent_id=None,
+        )
+        db.session.add(region_4)
+        created["regions"] += 1
+    else:
+        region_4.parent_id = None
+        updated["regions"] += 1
+
+    db.session.flush()
        
 
     seed_boulders = [
@@ -112,6 +150,7 @@ def seed_data():
             "description": "short powerful roof climb",
             "grade": 5,
             "coordinates": "48.778,-123.707",
+            "image": load_seed_image("the_egg.jpg"),
         },
         {
             "name": "granite dream",
@@ -120,6 +159,7 @@ def seed_data():
             "description": "technical face with small crimps",
             "grade": 7,
             "coordinates": "48.800,-123.690",
+            "image": None,
         },
         {
             "name": "Wip Climbing",
@@ -128,6 +168,7 @@ def seed_data():
             "description": "Cllimbing gym in nanaimo",
             "grade": 5,
             "coordinates": "49.1822632, -123.9844017",
+            "image": load_seed_image("wip_climbing.jpg"),
         }
     ]
 
@@ -146,6 +187,7 @@ def seed_data():
                 region_id=b["region"].id,
                 name=b["name"],
                 description=b["description"],
+                image=b.get("image"),
                 grade=b["grade"],
                 coordinates=b["coordinates"],
             )
@@ -156,6 +198,8 @@ def seed_data():
             existing.description = b["description"]
             existing.grade = b["grade"]
             existing.coordinates = b["coordinates"]
+            if b.get("image") is not None:
+                existing.image = b["image"]
             updated["boulders"] += 1
 
         boulder_objects.append(existing)
