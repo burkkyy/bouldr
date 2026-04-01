@@ -21,37 +21,69 @@
     >
 
     <template v-else-if="boulder">
-      <h1 class="text-h4 mb-2">{{ boulder.name }}</h1>
-
-      <div class="d-flex align-center ga-2 mb-4">
-        <v-chip color="primary">V{{ boulder.grade }}</v-chip>
-        <span
-          v-if="boulder.coordinates"
-          class="text-body-2 text-medium-emphasis"
+      <v-row class="mb-6">
+        <v-col
+          cols="12"
+          md="7"
         >
-          <v-icon size="small">mdi-map-marker</v-icon>
-          {{ boulder.coordinates }}
-        </span>
-      </div>
+          <h1 class="text-h4 mb-2">{{ boulder.name }}</h1>
 
-      <p
-        v-if="boulder.description"
-        class="text-body-1 mb-6"
-      >
-        {{ boulder.description }}
-      </p>
+          <div class="d-flex align-center ga-2 mb-4">
+            <v-chip color="primary">V{{ boulder.grade }}</v-chip>
+            <span
+              v-if="boulder.coordinates"
+              class="text-body-2 text-medium-emphasis"
+            >
+              <v-icon size="small">mdi-map-marker</v-icon>
+              {{ boulder.coordinates }}
+            </span>
+          </div>
 
-      <v-card
-        v-if="boulder.image"
-        class="pa-4"
-      >
-        <v-img
-          :src="boulder.image"
-          max-width="512"
-          max-height="512"
-          class="mx-auto"
-        />
-      </v-card>
+          <p
+            v-if="boulder.description"
+            class="text-body-1"
+          >
+            {{ boulder.description }}
+          </p>
+        </v-col>
+
+        <v-col
+          cols="8"
+          md="5"
+        >
+          <a
+            v-if="boulder.image"
+            :href="imageUrl"
+            target="_blank"
+          >
+            <v-card
+              class="overflow-hidden"
+              rounded="lg"
+              elevation="2"
+              style="cursor: pointer"
+            >
+              <v-img
+                :src="imageUrl"
+                max-height="200"
+                contain
+                class="bg-grey-darken-4"
+              />
+            </v-card>
+          </a>
+          <div
+            v-else
+            class="d-flex align-center justify-center bg-grey-lighten-3 rounded-lg"
+            style="height: 200px"
+          >
+            <v-icon
+              size="64"
+              color="grey-lighten-1"
+            >
+              mdi-image-filter-hdr
+            </v-icon>
+          </div>
+        </v-col>
+      </v-row>
 
       <div class="d-flex align-center justify-space-between mb-4">
         <h2 class="text-h5">Sends</h2>
@@ -198,16 +230,19 @@
 </template>
 
 <script lang="ts" setup>
-import { onMounted, ref } from "vue"
+import { computed, onMounted, ref } from "vue"
 import { useRoute } from "vue-router"
 
 import bouldersApi, { type Boulder } from "@/api/boulders-api"
 import sendsApi, { type Send } from "@/api/sends-api"
+import { API_BASE_URL } from "@/config"
 
 import { useCurrentUser } from "@/use/use-current-user"
 
 const route = useRoute()
 const boulderId = Number(route.params.id)
+
+const imageUrl = computed(() => `${API_BASE_URL}/api/boulders/${boulderId}/image`)
 const { currentUser, login } = useCurrentUser()
 
 const boulder = ref<Boulder | null>(null)

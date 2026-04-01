@@ -55,6 +55,25 @@
           :to="{ name: 'BoulderDetailPage', params: { id: boulder.id } }"
           hover
         >
+          <v-img
+            v-if="boulder.image"
+            :src="`${API_BASE_URL}/api/boulders/${boulder.id}/image`"
+            height="180"
+            cover
+            class="bg-grey-lighten-2"
+          />
+          <div
+            v-else
+            class="d-flex align-center justify-center bg-grey-lighten-3"
+            style="height: 180px"
+          >
+            <v-icon
+              size="64"
+              color="grey-lighten-1"
+            >
+              mdi-image-filter-hdr
+            </v-icon>
+          </div>
           <v-card-title>{{ boulder.name }}</v-card-title>
           <v-card-subtitle>
             <v-chip
@@ -111,6 +130,7 @@ import "leaflet/dist/leaflet.css"
 
 import bouldersApi, { type Boulder } from "@/api/boulders-api"
 import regionsApi, { type Region } from "@/api/regions-api"
+import { API_BASE_URL } from "@/config"
 
 import BoulderCreateDialog from "@/components/boulders/BoulderCreateDialog.vue"
 
