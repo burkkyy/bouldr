@@ -21,37 +21,88 @@
     >
 
     <template v-else-if="boulder">
-      <h1 class="text-h4 mb-2">{{ boulder.name }}</h1>
-
-      <div class="d-flex align-center ga-2 mb-4">
-        <v-chip color="primary">V{{ boulder.grade }}</v-chip>
-        <span
-          v-if="boulder.coordinates"
-          class="text-body-2 text-medium-emphasis"
+      <v-row class="mb-6">
+        <v-col
+          cols="12"
+          md="7"
         >
-          <v-icon size="small">mdi-map-marker</v-icon>
-          {{ boulder.coordinates }}
-        </span>
-      </div>
+          <h1 class="text-h4 mb-2">{{ boulder.name }}</h1>
 
-      <p
-        v-if="boulder.description"
-        class="text-body-1 mb-6"
-      >
-        {{ boulder.description }}
-      </p>
+          <div class="d-flex align-center ga-2 mb-4">
+            <v-chip color="primary">V{{ boulder.grade }}</v-chip>
+            <span
+              v-if="boulder.coordinates"
+              class="text-body-2 text-medium-emphasis"
+            >
+              <v-icon size="small">mdi-map-marker</v-icon>
+              {{ boulder.coordinates }}
+            </span>
+          </div>
 
-      <v-card
-        v-if="boulder.image"
-        class="pa-4"
-      >
-        <v-img
-          :src="boulder.image"
-          max-width="512"
-          max-height="512"
-          class="mx-auto"
-        />
-      </v-card>
+          <p
+            v-if="boulder.description"
+            class="text-body-1"
+          >
+            {{ boulder.description }}
+          </p>
+        </v-col>
+
+        <v-col
+          cols="12"
+          md="5"
+        >
+          <div class="d-flex ga-3" :class="{ 'flex-column': !boulder.coordinates }">
+            <div :style="boulder.coordinates ? 'flex: 1; min-width: 0' : ''">
+              <a
+                v-if="boulder.image"
+                :href="imageUrl"
+                target="_blank"
+              >
+                <v-card
+                  class="overflow-hidden"
+                  rounded="lg"
+                  elevation="2"
+                  style="cursor: pointer"
+                >
+                  <v-img
+                    :src="imageUrl"
+                    :max-height="boulder.coordinates ? 200 : 200"
+                    contain
+                    class="bg-grey-darken-4"
+                  />
+                </v-card>
+              </a>
+              <div
+                v-else
+                class="d-flex align-center justify-center bg-grey-lighten-3 rounded-lg"
+                style="height: 200px"
+              >
+                <v-icon
+                  size="64"
+                  color="grey-lighten-1"
+                >
+                  mdi-image-filter-hdr
+                </v-icon>
+              </div>
+            </div>
+            <div
+              v-if="boulder.coordinates"
+              style="flex: 1; min-width: 0"
+            >
+              <v-card
+                rounded="lg"
+                elevation="2"
+                class="overflow-hidden"
+              >
+                <div
+                  ref="detailMapContainer"
+                  style="height: 200px; width: 100%"
+                ></div>
+              </v-card>
+            </div>
+          </div>
+        </v-col>
+      </v-row>
 
       <div class="d-flex align-center justify-space-between mb-4">
         <h2 class="text-h5">Sends</h2>
@@ -198,16 +249,21 @@
 </template>
 
 <script lang="ts" setup>
-import { onMounted, ref } from "vue"
+import { computed, nextTick, onBeforeUnmount, onMounted, ref } from "vue"
 import { useRoute } from "vue-router"
+import L from "leaflet"
+import "leaflet/dist/leaflet.css"
 
 import bouldersApi, { type Boulder } from "@/api/boulders-api"
 import sendsApi, { type Send } from "@/api/sends-api"
+import { API_BASE_URL } from "@/config"
 
 import { useCurrentUser } from "@/use/use-current-user"
 
 const route = useRoute()
 const boulderId = Number(route.params.id)
+
+const imageUrl = computed(() => `${API_BASE_URL}/api/boulders/${boulderId}/image`)
 const { currentUser, login } = useCurrentUser()
 
 const boulder = ref<Boulder | null>(null)
@@ -215,6 +271,9 @@ const sends = ref<Send[]>([])
 const isLoading = ref(true)
 const sendsLoading = ref(true)
 const error = ref<string | null>(null)
+
+const detailMapContainer = ref<HTMLElement | null>(null)
+let detailMap: L.Map | null = null
 
 const showLogSendDialog = ref(false)
 const sendSubmitting = ref(false)
@@ -283,6 +342,38 @@ function formatDate(iso: string): string {
   })
 }
 
+function parseCoords(coords: string): [number, number] | null {
+  const match = coords.match(/^(-?\d+\.?\d*),\s*(-?\d+\.?\d*)$/)
+  if (!match) return null
+  const lat = parseFloat(match[1])
+  const lng = parseFloat(match[2])
+  if (lat < -90 || lat > 90 || lng < -180 || lng > 180) return null
+  return [lat, lng]
+}
+
+function initDetailMap() {
+  if (!detailMapContainer.value || !boulder.value?.coordinates) return
+
+  const parsed = parseCoords(boulder.value.coordinates)
+  if (!parsed) return
+
+  delete (L.Icon.Default.prototype as unknown as Record<string, unknown>)._getIconUrl
+  L.Icon.Default.mergeOptions({
+    iconRetinaUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png",
+    iconUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
+    shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
+  })
+
+  detailMap = L.map(detailMapContainer.value).setView(parsed, 14)
+
+  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+    maxZoom: 19,
+  }).addTo(detailMap)
+
+  L.marker(parsed).addTo(detailMap)
+}
+
 onMounted(async () => {
   try {
     boulder.value = await bouldersApi.get(boulderId)
@@ -293,12 +384,22 @@ onMounted(async () => {
     isLoading.value = false
   }
 
+  await nextTick()
+  initDetailMap()
+
   try {
     sends.value = await sendsApi.list({ boulderID: boulderId })
   } catch (e) {
     console.error("Failed to load sends:", e)
   } finally {
     sendsLoading.value = false
+  }
+})
+
+onBeforeUnmount(() => {
+  if (detailMap) {
+    detailMap.remove()
+    detailMap = null
   }
 })
 </script>

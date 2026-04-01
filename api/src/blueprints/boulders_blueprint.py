@@ -1,7 +1,8 @@
+import base64
 import re
 from datetime import datetime
 
-from flask import Blueprint, jsonify, request
+from flask import Blueprint, Response, jsonify, request
 
 from src import db
 from src.models import Boulder, User
@@ -62,6 +63,27 @@ def get(id):
         return jsonify({"error": "boulder not found"}), 404
 
     return jsonify(serialize_boulder(boulder))
+
+
+@boulders_blueprint.get("/<int:id>/image")
+def get_image(id):
+    boulder = get_active_boulder(id)
+
+    if boulder is None:
+        return jsonify({"error": "boulder not found"}), 404
+
+    if not boulder.image:
+        return jsonify({"error": "boulder has no image"}), 404
+
+    # Parse data URL: "data:image/png;base64,<data>"
+    match = re.match(r"data:image/(\w+);base64,(.+)", boulder.image)
+    if not match:
+        return jsonify({"error": "invalid image data"}), 500
+
+    mime_type = f"image/{match.group(1)}"
+    image_bytes = base64.b64decode(match.group(2))
+
+    return Response(image_bytes, content_type=mime_type)
 
 
 @boulders_blueprint.post("/")
