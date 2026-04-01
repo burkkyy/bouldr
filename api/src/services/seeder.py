@@ -119,6 +119,27 @@ def seed_data():
         updated["regions"] += 1
 
     db.session.flush()
+
+    region_4 = db.session.execute(
+        db.select(Region).where(
+            Region.type == "country",
+            Region.name == "Finland",
+        )
+    ).scalar_one_or_none()
+
+    if region_4 is None:
+        region_4 = Region(
+            type="country",
+            name="Finland",
+            parent_id=None,
+        )
+        db.session.add(region_4)
+        created["regions"] += 1
+    else:
+        region_4.parent_id = None
+        updated["regions"] += 1
+
+    db.session.flush()
        
 
     seed_boulders = [
