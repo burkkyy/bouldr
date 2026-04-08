@@ -9,7 +9,8 @@ from src.blueprints import register_blueprints
 
 
 def create_app():
-    app = Flask(__name__)
+    static_dir = os.path.join(os.path.dirname(__file__), "web")
+    app = Flask(__name__, static_folder=static_dir, static_url_path="/web")
     app.config.from_object(Config)
 
     CORS(
