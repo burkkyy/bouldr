@@ -2,10 +2,11 @@ import base64
 import re
 from datetime import datetime
 
-from flask import Blueprint, Response, jsonify, request
+from flask import Blueprint, Response, g, jsonify, request
 
 from src import db
 from src.models import Boulder, User
+from src.auth import require_auth
 
 COORDINATES_RE = re.compile(
     r"^-?(?:[1-8]?\d(?:\.\d+)?|90(?:\.0+)?),\s*-?(?:1[0-7]\d(?:\.\d+)?|180(?:\.0+)?|\d{1,2}(?:\.\d+)?)$"
@@ -127,11 +128,15 @@ def create():
 
 
 @boulders_blueprint.patch("/<int:id>")
+@require_auth
 def update(id):
     boulder = get_active_boulder(id)
 
     if boulder is None:
         return jsonify({"error": "boulder not found"}), 404
+
+    if boulder.author_id != g.current_user.id:
+        return jsonify({"error": "You can only edit your own boulders"}), 403
 
     data = request.get_json(silent=True) or {}
 
@@ -173,11 +178,15 @@ def update(id):
 
 
 @boulders_blueprint.delete("/<int:id>")
+@require_auth
 def delete(id):
     boulder = get_active_boulder(id)
 
     if boulder is None:
         return jsonify({"error": "boulder not found"}), 404
+
+    if boulder.author_id != g.current_user.id:
+        return jsonify({"error": "You can only delete your own boulders"}), 403
 
     boulder.deleted_at = datetime.utcnow()
     db.session.commit()

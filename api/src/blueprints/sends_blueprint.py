@@ -1,9 +1,10 @@
 from datetime import datetime
 
-from flask import Blueprint, jsonify, request
+from flask import Blueprint, g, jsonify, request
 
 from src import db
 from src.models import Boulder, Send, User
+from src.auth import require_auth
 
 sends_blueprint = Blueprint("sends", __name__)
 
@@ -112,11 +113,15 @@ def create():
 
 
 @sends_blueprint.patch("/<int:id>")
+@require_auth
 def update(id):
     send = get_active_send(id)
 
     if send is None:
         return jsonify({"error": "send not found"}), 404
+
+    if send.user_id != g.current_user.id:
+        return jsonify({"error": "You can only edit your own sends"}), 403
 
     data = request.get_json(silent=True) or {}
 
@@ -150,11 +155,15 @@ def update(id):
 
 
 @sends_blueprint.delete("/<int:id>")
+@require_auth
 def delete(id):
     send = get_active_send(id)
 
     if send is None:
         return jsonify({"error": "send not found"}), 404
+
+    if send.user_id != g.current_user.id:
+        return jsonify({"error": "You can only delete your own sends"}), 403
 
     send.deleted_at = datetime.utcnow()
     db.session.commit()

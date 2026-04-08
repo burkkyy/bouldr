@@ -2,8 +2,8 @@ import http from "@/api/http-client"
 
 export type Boulder = {
   id: number
-  authorID: number
-  regionID: number | null
+  authorId: number
+  regionId: number | null
   name: string
   description: string | null
   image: string | null // base64 data URL
@@ -29,7 +29,7 @@ export type BoulderQueryOptions = {
 
 export const bouldersApi = {
   async list(params: BoulderQueryOptions = {}): Promise<Boulder[]> {
-    const { data } = await http.get("/api/boulders", {
+    const { data } = await http.get("/api/boulders/", {
       params,
     })
     return data
@@ -39,17 +39,31 @@ export const bouldersApi = {
     return data
   },
   async create(attributes: Partial<Boulder>): Promise<Boulder> {
-    const { data } = await http.post("/api/boulders/", attributes)
+    const { data } = await http.post("/api/boulders/", {
+      authorID: attributes.authorId,
+      regionID: attributes.regionId,
+      name: attributes.name,
+      description: attributes.description,
+      image: attributes.image,
+      grade: attributes.grade,
+      coordinates: attributes.coordinates,
+    })
     return data
   },
-  // async update(boulderId: number, attributes: Partial<Boulder>): Promise<{ boulder: Boulder }> {
-  //   const { data } = await http.patch(`/api/boulders/${boulderId}`, attributes)
-  //   return data
-  // },
-  // async delete(boulderId: number): Promise<void> {
-  //   const { data } = await http.delete(`/api/boulders/${boulderId}`)
-  //   return data
-  // },
+  async update(boulderId: number, attributes: Partial<Boulder>): Promise<Boulder> {
+    const body: Record<string, unknown> = {}
+    if (attributes.name !== undefined) body.name = attributes.name
+    if (attributes.description !== undefined) body.description = attributes.description
+    if (attributes.image !== undefined) body.image = attributes.image
+    if (attributes.grade !== undefined) body.grade = attributes.grade
+    if (attributes.coordinates !== undefined) body.coordinates = attributes.coordinates
+    if (attributes.regionId !== undefined) body.regionID = attributes.regionId
+    const { data } = await http.patch(`/api/boulders/${boulderId}`, body)
+    return data
+  },
+  async delete(boulderId: number): Promise<void> {
+    await http.delete(`/api/boulders/${boulderId}`)
+  },
 }
 
 export default bouldersApi
