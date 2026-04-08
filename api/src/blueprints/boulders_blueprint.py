@@ -1,10 +1,12 @@
+import base64
 import re
 from datetime import datetime
 
-from flask import Blueprint, jsonify, request
+from flask import Blueprint, Response, g, jsonify, request
 
 from src import db
 from src.models import Boulder, User
+from src.auth import require_auth
 
 COORDINATES_RE = re.compile(
     r"^-?(?:[1-8]?\d(?:\.\d+)?|90(?:\.0+)?),\s*-?(?:1[0-7]\d(?:\.\d+)?|180(?:\.0+)?|\d{1,2}(?:\.\d+)?)$"
@@ -16,8 +18,8 @@ boulders_blueprint = Blueprint("boulders", __name__)
 def serialize_boulder(boulder: Boulder) -> dict:
     return {
         "id": boulder.id,
-        "authorID": boulder.author_id,
-        "regionID": boulder.region_id,
+        "authorId": boulder.author_id,
+        "regionId": boulder.region_id,
         "name": boulder.name,
         "description": boulder.description,
         "image": boulder.image,
@@ -64,16 +66,37 @@ def get(id):
     return jsonify(serialize_boulder(boulder))
 
 
+@boulders_blueprint.get("/<int:id>/image")
+def get_image(id):
+    boulder = get_active_boulder(id)
+
+    if boulder is None:
+        return jsonify({"error": "boulder not found"}), 404
+
+    if not boulder.image:
+        return jsonify({"error": "boulder has no image"}), 404
+
+    # Parse data URL: "data:image/png;base64,<data>"
+    match = re.match(r"data:image/(\w+);base64,(.+)", boulder.image)
+    if not match:
+        return jsonify({"error": "invalid image data"}), 500
+
+    mime_type = f"image/{match.group(1)}"
+    image_bytes = base64.b64decode(match.group(2))
+
+    return Response(image_bytes, content_type=mime_type)
+
+
 @boulders_blueprint.post("/")
 def create():
     data = request.get_json(silent=True) or {}
 
-    author_id = data.get("authorID")
+    author_id = data.get("authorId")
     name = data.get("name")
     grade = data.get("grade")
 
     if author_id is None:
-        return jsonify({"error": "authorID is required"}), 400
+        return jsonify({"error": "authorId is required"}), 400
 
     if not name:
         return jsonify({"error": "name is required"}), 400
@@ -90,7 +113,7 @@ def create():
 
     boulder = Boulder(
         author_id=author_id,
-        region_id=data.get("regionID"),
+        region_id=data.get("regionId"),
         name=name,
         description=data.get("description"),
         image=data.get("image"),
@@ -105,24 +128,28 @@ def create():
 
 
 @boulders_blueprint.patch("/<int:id>")
+@require_auth
 def update(id):
     boulder = get_active_boulder(id)
 
     if boulder is None:
         return jsonify({"error": "boulder not found"}), 404
 
+    if boulder.author_id != g.current_user.id:
+        return jsonify({"error": "You can only edit your own boulders"}), 403
+
     data = request.get_json(silent=True) or {}
 
-    if "authorID" in data:
-        author_id = data["authorID"]
+    if "authorId" in data:
+        author_id = data["authorId"]
 
         if get_active_user(author_id) is None:
             return jsonify({"error": "author not found"}), 400
 
         boulder.author_id = author_id
 
-    if "regionID" in data:
-        boulder.region_id = data["regionID"]
+    if "regionId" in data:
+        boulder.region_id = data["regionId"]
 
     if "name" in data:
         if not data["name"]:
@@ -151,11 +178,15 @@ def update(id):
 
 
 @boulders_blueprint.delete("/<int:id>")
+@require_auth
 def delete(id):
     boulder = get_active_boulder(id)
 
     if boulder is None:
         return jsonify({"error": "boulder not found"}), 404
+
+    if boulder.author_id != g.current_user.id:
+        return jsonify({"error": "You can only delete your own boulders"}), 403
 
     boulder.deleted_at = datetime.utcnow()
     db.session.commit()

@@ -4,6 +4,7 @@ from flask import Blueprint, jsonify, request
 
 from src import db
 from src.models import User
+from src.auth import validate_password
 
 users_blueprint = Blueprint("users", __name__)
 
@@ -56,15 +57,51 @@ def create():
     if not username:
         return jsonify({"error": "username is required"}), 400
 
+    password = data.get("password")
+    if not password:
+        return jsonify({"error": "password is required"}), 400
+
+    error = validate_password(password)
+    if error:
+        return jsonify({"error": error}), 400
+
+    existing = db.session.execute(
+        db.select(User).where(User.username == username, User.deleted_at.is_(None))
+    ).scalar_one_or_none()
+
+    if existing is not None:
+        return jsonify({"error": "username already taken"}), 400
+
     user = User(
         username=username,
         display_name=data.get("displayName"),
     )
+    user.set_password(password)
 
     db.session.add(user)
     db.session.commit()
 
     return jsonify(serialize_user(user)), 201
+
+
+@users_blueprint.post("/login")
+def login():
+    data = request.get_json(silent=True) or {}
+
+    username = data.get("username")
+    password = data.get("password")
+
+    if not username or not password:
+        return jsonify({"error": "username and password are required"}), 400
+
+    user = db.session.execute(
+        db.select(User).where(User.username == username, User.deleted_at.is_(None))
+    ).scalar_one_or_none()
+
+    if user is None or not user.check_password(password):
+        return jsonify({"error": "Invalid username or password"}), 401
+
+    return jsonify(serialize_user(user))
 
 
 @users_blueprint.patch("/<int:id>")

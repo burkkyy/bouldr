@@ -13,7 +13,7 @@ def serialize_region(region: Region) -> dict:
         "id": region.id,
         "type": region.type,
         "name": region.name,
-        "parentID": region.parent_id,
+        "parentId": region.parent_id,
         "createdAt": region.created_at.isoformat() if region.created_at else None,
         "updatedAt": region.updated_at.isoformat() if region.updated_at else None,
         "deletedAt": region.deleted_at.isoformat() if region.deleted_at else None,
@@ -51,7 +51,7 @@ def create():
 
     region_type = data.get("type")
     name = data.get("name")
-    parent_id = data.get("parentID")
+    parent_id = data.get("parentId")
 
     if not region_type:
         return jsonify({"error": "type is required"}), 400
@@ -93,8 +93,8 @@ def update(id):
             return jsonify({"error": "name cannot be empty"}), 400
         region.name = data["name"]
 
-    if "parentID" in data:
-        parent_id = data["parentID"]
+    if "parentId" in data:
+        parent_id = data["parentId"]
 
         if parent_id == id:
             return jsonify({"error": "region cannot be its own parent"}), 400

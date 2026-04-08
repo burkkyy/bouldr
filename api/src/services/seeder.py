@@ -40,10 +40,13 @@ def seed_data():
 
     if user_1 is None:
         user_1 = User(username="kyle", display_name="Kyle")
+        user_1.set_password("password!")
         db.session.add(user_1)
         created["users"] += 1
     else:
         user_1.display_name = "Kyle"
+        if not user_1.password_hash:
+            user_1.set_password("password!")
         updated["users"] += 1
 
     user_2 = db.session.execute(
@@ -52,10 +55,13 @@ def seed_data():
 
     if user_2 is None:
         user_2 = User(username="sam", display_name="Sam")
+        user_2.set_password("password!")
         db.session.add(user_2)
         created["users"] += 1
     else:
         user_2.display_name = "Sam"
+        if not user_2.password_hash:
+            user_2.set_password("password!")
         updated["users"] += 1
 
     db.session.flush()

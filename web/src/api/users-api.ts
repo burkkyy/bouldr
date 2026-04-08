@@ -10,11 +10,15 @@ export type User = {
 
 export const usersApi = {
   async list(params: { username?: string } = {}): Promise<User[]> {
-    const { data } = await http.get("/api/users", { params })
+    const { data } = await http.get("/api/users/", { params })
     return data
   },
-  async create(attributes: { username: string }): Promise<User> {
+  async create(attributes: { username: string; password: string }): Promise<User> {
     const { data } = await http.post("/api/users/", attributes)
+    return data
+  },
+  async login(attributes: { username: string; password: string }): Promise<User> {
+    const { data } = await http.post("/api/users/login", attributes)
     return data
   },
 }

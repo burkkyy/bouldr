@@ -11,7 +11,7 @@ export type Region = {
 
 export const regionsApi = {
   async list(): Promise<Region[]> {
-    const { data } = await http.get("/api/regions")
+    const { data } = await http.get("/api/regions/")
     return data
   },
   async get(regionId: number): Promise<Region> {
@@ -22,7 +22,7 @@ export const regionsApi = {
     const { data } = await http.post("/api/regions/", {
       type: attributes.type,
       name: attributes.name,
-      parentID: attributes.parentId,
+      parentId: attributes.parentId,
     })
     return data
   },

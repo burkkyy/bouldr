@@ -4,6 +4,14 @@
       <h1 class="text-h4">Boulders</h1>
       <v-spacer />
       <v-btn
+        color="secondary"
+        variant="outlined"
+        prepend-icon="mdi-text-box-outline"
+        text="Describe a Boulder"
+        class="mr-2"
+        @click="showDescribeDialog = true"
+      />
+      <v-btn
         color="primary"
         prepend-icon="mdi-plus"
         text="Create Boulder"
@@ -57,7 +65,7 @@
         >
           <v-img
             v-if="boulder.image"
-            :src="boulder.image"
+            :src="`${API_BASE_URL}/api/boulders/${boulder.id}/image`"
             height="180"
             cover
             class="bg-grey-lighten-2"
@@ -120,18 +128,89 @@
       ref="boulderCreateDialog"
       @created="refresh"
     />
+
+    <!-- Describe Boulder Dialog -->
+    <v-dialog
+      v-model="showDescribeDialog"
+      max-width="600"
+      persistent
+    >
+      <v-card>
+        <v-card-title>Describe a Boulder</v-card-title>
+        <v-card-subtitle class="mb-2">
+          Describe the boulder we will extract the details for you
+        </v-card-subtitle>
+        <v-card-text>
+          <v-textarea
+            v-model="descriptionText"
+            label="Description"
+            rows="5"
+            placeholder='e.g. "The Egg" is a V5 boulder in Nanaimo, a short powerful roof climb at 48.778, -123.707'
+            variant="outlined"
+            auto-grow
+          />
+
+          <v-alert
+            v-if="parsedInfo && hasAnyParsedField"
+            type="info"
+            variant="tonal"
+            class="mt-3"
+          >
+            <div class="text-subtitle-2 mb-1">Extracted info:</div>
+            <ul class="ml-4">
+              <li v-if="parsedInfo.name"><strong>Name:</strong> {{ parsedInfo.name }}</li>
+              <li v-if="parsedInfo.grade !== null"><strong>Grade:</strong> V{{ parsedInfo.grade }}</li>
+              <li v-if="parsedInfo.regionId"><strong>Region:</strong> {{ getRegionName(parsedInfo.regionId) }}</li>
+              <li v-if="parsedInfo.coordinates"><strong>Coordinates:</strong> {{ parsedInfo.coordinates }}</li>
+              <li v-if="parsedInfo.description"><strong>Description:</strong> {{ parsedInfo.description }}</li>
+            </ul>
+          </v-alert>
+
+          <v-alert
+            v-else-if="descriptionText.trim().length > 0"
+            type="warning"
+            variant="tonal"
+            class="mt-3"
+          >
+            No details could be extracted. Try including a name in quotes, a grade like "V5", coordinates, or a known region name.
+          </v-alert>
+        </v-card-text>
+        <v-card-actions>
+          <v-spacer />
+          <v-btn
+            variant="text"
+            @click="closeDescribeDialog"
+          >
+            Cancel
+          </v-btn>
+          <v-btn
+            color="primary"
+            variant="flat"
+            :disabled="!hasAnyParsedField"
+            @click="openPrefilled"
+          >
+            Continue to Form
+          </v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
   </div>
 </template>
 
 <script lang="ts" setup>
 import { computed, onMounted, onBeforeUnmount, ref, watch, nextTick } from "vue"
+import { useRouter } from "vue-router"
 import L from "leaflet"
 import "leaflet/dist/leaflet.css"
 
 import bouldersApi, { type Boulder } from "@/api/boulders-api"
 import regionsApi, { type Region } from "@/api/regions-api"
+import { API_BASE_URL } from "@/config"
 
 import BoulderCreateDialog from "@/components/boulders/BoulderCreateDialog.vue"
+import { parseBoulderDescription, type ParsedBoulderInfo } from "@/utils/boulder-description-parser"
+
+const router = useRouter()
 
 const boulders = ref<Boulder[]>([])
 const regions = ref<Region[]>([])
@@ -143,6 +222,45 @@ const mapContainer = ref<HTMLElement | null>(null)
 let map: L.Map | null = null
 let markerLayer: L.LayerGroup | null = null
 const mapBounds = ref<L.LatLngBounds | null>(null)
+
+// Describe dialog state
+const showDescribeDialog = ref(false)
+const descriptionText = ref("")
+
+const parsedInfo = computed<ParsedBoulderInfo | null>(() => {
+  if (!descriptionText.value.trim()) return null
+  return parseBoulderDescription(descriptionText.value, regions.value)
+})
+
+const hasAnyParsedField = computed(() => {
+  if (!parsedInfo.value) return false
+  const p = parsedInfo.value
+  return p.name || p.grade !== null || p.coordinates || p.regionId || p.description
+})
+
+function getRegionName(regionId: number): string {
+  const region = regions.value.find((r) => r.id === regionId)
+  return region ? `${region.name} (${region.type})` : `Region #${regionId}`
+}
+
+function closeDescribeDialog() {
+  showDescribeDialog.value = false
+  descriptionText.value = ""
+}
+
+function openPrefilled() {
+  if (!parsedInfo.value) return
+
+  const prefill: Partial<Boulder> = {}
+  if (parsedInfo.value.name) prefill.name = parsedInfo.value.name
+  if (parsedInfo.value.grade !== null) prefill.grade = parsedInfo.value.grade
+  if (parsedInfo.value.description) prefill.description = parsedInfo.value.description
+  if (parsedInfo.value.coordinates) prefill.coordinates = parsedInfo.value.coordinates
+  if (parsedInfo.value.regionId) prefill.regionId = parsedInfo.value.regionId
+
+  closeDescribeDialog()
+  boulderCreateDialog.value?.showWithPrefill(prefill)
+}
 
 function parseCoords(coords: string): [number, number] | null {
   const match = coords.match(/^(-?\d+\.?\d*),\s*(-?\d+\.?\d*)$/)
@@ -172,9 +290,20 @@ function updateMarkers() {
     const parsed = parseCoords(boulder.coordinates)
     if (!parsed) continue
 
-    L.marker(parsed)
-      .bindPopup(`<strong>${boulder.name}</strong><br>V${boulder.grade}`)
+    const marker = L.marker(parsed)
+      .bindPopup(
+        `<strong>${boulder.name}</strong><br>V${boulder.grade}<br><a href="javascript:void(0)" class="boulder-popup-link" data-boulder-id="${boulder.id}">View Details</a>`
+      )
       .addTo(markerLayer)
+
+    marker.on("popupopen", () => {
+      const link = document.querySelector(`.boulder-popup-link[data-boulder-id="${boulder.id}"]`)
+      if (link) {
+        link.addEventListener("click", () => {
+          router.push({ name: "BoulderDetailPage", params: { id: boulder.id } })
+        })
+      }
+    })
   }
 }
 

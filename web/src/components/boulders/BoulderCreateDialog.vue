@@ -5,11 +5,11 @@
     persistent
   >
     <v-card>
-      <v-card-title>Create Boulder</v-card-title>
+      <v-card-title>{{ isEditMode ? "Edit Boulder" : "Create Boulder" }}</v-card-title>
       <v-card-text>
         <v-form
           ref="formRef"
-          @submit.prevent="validateAndCreate"
+          @submit.prevent="validateAndSubmit"
         >
           <v-row>
             <v-col cols="12">
@@ -88,17 +88,17 @@
                 v-model="imageFile"
                 accept="image/*"
                 prepend-inner-icon="mdi-camera"
-                label="Upload Image"
+                :label="isEditMode ? 'Upload New Image' : 'Upload Image'"
                 hide-details="auto"
                 clearable
                 @change="handleImageUpload"
               />
               <div
-                v-if="boulder.image"
+                v-if="boulder.image || existingImageUrl"
                 class="mt-4 d-flex justify-center"
               >
                 <v-img
-                  :src="boulder.image"
+                  :src="boulder.image || existingImageUrl || ''"
                   max-width="200"
                   max-height="200"
                   class="rounded elevation-2"
@@ -119,9 +119,9 @@
         <v-btn
           color="primary"
           variant="flat"
-          :loading="isCreating"
-          text="Create"
-          @click="validateAndCreate"
+          :loading="isSubmitting"
+          :text="isEditMode ? 'Save' : 'Create'"
+          @click="validateAndSubmit"
         />
       </v-card-actions>
     </v-card>
@@ -131,18 +131,21 @@
 <script lang="ts" setup>
 import { computed, ref } from "vue"
 import { VForm } from "vuetify/components"
+import { isNil } from "lodash"
 
 import bouldersApi, { type Boulder } from "@/api/boulders-api"
 import regionsApi from "@/api/regions-api"
 import { required } from "@/utils/validators"
 import { resizeToStandard } from "@/utils/image-resizer"
+import { API_BASE_URL } from "@/config"
 
 import useSnack from "@/use/use-snack"
 import { useCurrentUser } from "@/use/use-current-user"
 import useRegions from "@/use/use-regions"
-import { isNil } from "lodash"
 
 const showDialog = ref(false)
+const isEditMode = ref(false)
+let editingBoulderId: number | null = null
 
 const { currentUser } = useCurrentUser()
 
@@ -151,38 +154,26 @@ const COORD_REGEX =
 
 const { regions } = useRegions()
 
-const isCreating = ref(false)
+const isSubmitting = ref(false)
 const selectedRegion = ref<{ title: string; value: number } | string | null>(null)
 const newRegionType = ref<string | null>(null)
 const newRegionParentId = ref<number | null>(null)
+const existingImageUrl = ref<string | null>(null)
 
-const emit = defineEmits<{ created: [boulder: Boulder] }>()
+const emit = defineEmits<{
+  created: [boulder: Boulder]
+  updated: [boulder: Boulder]
+}>()
 
 const imageFile = ref<File[] | File | null>(null)
 
 const boulder = ref<Partial<Boulder>>({
-  authorID: currentUser.value?.id ?? 1,
+  authorId: currentUser.value?.id ?? 1,
 })
 
 const grades = {
-  V0: 0,
-  V1: 1,
-  V2: 2,
-  V3: 3,
-  V4: 4,
-  V5: 5,
-  V6: 6,
-  V7: 7,
-  V8: 8,
-  V9: 9,
-  V10: 10,
-  V11: 11,
-  V12: 12,
-  V13: 13,
-  V14: 14,
-  V15: 15,
-  V16: 16,
-  V17: 17,
+  V0: 0, V1: 1, V2: 2, V3: 3, V4: 4, V5: 5, V6: 6, V7: 7, V8: 8,
+  V9: 9, V10: 10, V11: 11, V12: 12, V13: 13, V14: 14, V15: 15, V16: 16, V17: 17,
 }
 
 const gradeOptions = Object.entries(grades).map(([key, val]) => ({
@@ -228,20 +219,18 @@ async function handleImageUpload() {
   }
 }
 
-async function validateAndCreate() {
+async function validateAndSubmit() {
   if (formRef.value === null) return
 
   const { valid } = await formRef.value.validate()
-
   if (!valid) return
 
   const coords = boulder.value.coordinates?.trim()
   if (coords && !COORD_REGEX.test(coords)) return
 
-  isCreating.value = true
+  isSubmitting.value = true
 
   try {
-    // _TODO_ refactor
     let regionId: number | null = null
     if (typeof selectedRegion.value === "string" && selectedRegion.value.trim()) {
       if (!newRegionType.value) {
@@ -257,29 +246,108 @@ async function validateAndCreate() {
       regionId = selectedRegion.value.value
     }
 
-    const newBoulder = await bouldersApi.create({
-      ...boulder.value,
-      regionID: regionId,
-      coordinates: coords || null,
-    })
-    emit("created", newBoulder)
+    if (isEditMode.value && editingBoulderId !== null) {
+      const attrs: Partial<Boulder> = {
+        name: boulder.value.name,
+        grade: boulder.value.grade,
+        description: boulder.value.description || null,
+        coordinates: coords || null,
+        regionId: regionId,
+      }
+      if (boulder.value.image) {
+        attrs.image = boulder.value.image
+      }
+      const updated = await bouldersApi.update(editingBoulderId, attrs)
+      emit("updated", updated)
+      snack.success("Boulder updated")
+    } else {
+      const newBoulder = await bouldersApi.create({
+        ...boulder.value,
+        regionId: regionId,
+        coordinates: coords || null,
+      })
+      emit("created", newBoulder)
+    }
     close()
   } catch (e) {
-    snack.error("Failed to create boulder.")
+    snack.error(isEditMode.value ? "Failed to update boulder." : "Failed to create boulder.")
     console.error(e)
   } finally {
-    isCreating.value = false
+    isSubmitting.value = false
   }
 }
 
 function show() {
+  isEditMode.value = false
+  editingBoulderId = null
+  existingImageUrl.value = null
+  boulder.value = { authorId: currentUser.value?.id ?? 1 }
+  selectedRegion.value = null
+  newRegionType.value = null
+  newRegionParentId.value = null
+  imageFile.value = null
+  showDialog.value = true
+}
+
+function showEdit(existing: Boulder) {
+  isEditMode.value = true
+  editingBoulderId = existing.id
+  boulder.value = {
+    name: existing.name,
+    grade: existing.grade,
+    description: existing.description || "",
+    coordinates: existing.coordinates || "",
+  }
+  existingImageUrl.value = existing.image
+    ? `${API_BASE_URL}/api/boulders/${existing.id}/image`
+    : null
+  imageFile.value = null
+
+  // Set region if it exists
+  if (existing.regionId) {
+    const region = regions.value.find((r) => r.id === existing.regionId)
+    if (region) {
+      selectedRegion.value = { title: `${region.name} (${region.type})`, value: region.id }
+    }
+  } else {
+    selectedRegion.value = null
+  }
+  newRegionType.value = null
+  newRegionParentId.value = null
+
+  showDialog.value = true
+}
+
+function showWithPrefill(prefill: Partial<Boulder>) {
+  isEditMode.value = false
+  editingBoulderId = null
+  existingImageUrl.value = null
+  boulder.value = {
+    authorId: currentUser.value?.id ?? 1,
+    ...prefill,
+  }
+  // Try to match region by name
+  if (prefill.regionId) {
+    const region = regions.value.find((r) => r.id === prefill.regionId)
+    if (region) {
+      selectedRegion.value = { title: `${region.name} (${region.type})`, value: region.id }
+    }
+  } else {
+    selectedRegion.value = null
+  }
+  newRegionType.value = null
+  newRegionParentId.value = null
+  imageFile.value = null
   showDialog.value = true
 }
 
 function close() {
   boulder.value = {}
+  existingImageUrl.value = null
   showDialog.value = false
+  isEditMode.value = false
+  editingBoulderId = null
 }
 
-defineExpose({ show, close })
+defineExpose({ show, showEdit, showWithPrefill, close })
 </script>
