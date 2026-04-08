@@ -65,3 +65,4 @@ node_modules/
 
 # Compiled db  
 *.db
+.DS_Store

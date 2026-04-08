@@ -18,8 +18,8 @@ boulders_blueprint = Blueprint("boulders", __name__)
 def serialize_boulder(boulder: Boulder) -> dict:
     return {
         "id": boulder.id,
-        "authorID": boulder.author_id,
-        "regionID": boulder.region_id,
+        "authorId": boulder.author_id,
+        "regionId": boulder.region_id,
         "name": boulder.name,
         "description": boulder.description,
         "image": boulder.image,
@@ -91,12 +91,12 @@ def get_image(id):
 def create():
     data = request.get_json(silent=True) or {}
 
-    author_id = data.get("authorID")
+    author_id = data.get("authorId")
     name = data.get("name")
     grade = data.get("grade")
 
     if author_id is None:
-        return jsonify({"error": "authorID is required"}), 400
+        return jsonify({"error": "authorId is required"}), 400
 
     if not name:
         return jsonify({"error": "name is required"}), 400
@@ -113,7 +113,7 @@ def create():
 
     boulder = Boulder(
         author_id=author_id,
-        region_id=data.get("regionID"),
+        region_id=data.get("regionId"),
         name=name,
         description=data.get("description"),
         image=data.get("image"),
@@ -140,16 +140,16 @@ def update(id):
 
     data = request.get_json(silent=True) or {}
 
-    if "authorID" in data:
-        author_id = data["authorID"]
+    if "authorId" in data:
+        author_id = data["authorId"]
 
         if get_active_user(author_id) is None:
             return jsonify({"error": "author not found"}), 400
 
         boulder.author_id = author_id
 
-    if "regionID" in data:
-        boulder.region_id = data["regionID"]
+    if "regionId" in data:
+        boulder.region_id = data["regionId"]
 
     if "name" in data:
         if not data["name"]:

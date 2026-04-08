@@ -22,7 +22,7 @@ export const regionsApi = {
     const { data } = await http.post("/api/regions/", {
       type: attributes.type,
       name: attributes.name,
-      parentID: attributes.parentId,
+      parentId: attributes.parentId,
     })
     return data
   },

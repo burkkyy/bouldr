@@ -27,17 +27,12 @@ export type UpdateSendAttributes = {
 export const sendsApi = {
   async list(params: { boulderId?: number } = {}): Promise<Send[]> {
     const { data } = await http.get("/api/sends/", {
-      params: params.boulderId != null ? { boulderID: params.boulderId } : {},
+      params: params.boulderId != null ? { boulderId: params.boulderId } : {},
     })
     return data
   },
   async create(attributes: CreateSendAttributes): Promise<Send> {
-    const { data } = await http.post("/api/sends/", {
-      boulderID: attributes.boulderId,
-      userID: attributes.userId,
-      sendType: attributes.sendType,
-      rating: attributes.rating,
-    })
+    const { data } = await http.post("/api/sends/", attributes)
     return data
   },
   async update(sendId: number, attributes: UpdateSendAttributes): Promise<Send> {

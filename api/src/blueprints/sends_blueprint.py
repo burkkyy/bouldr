@@ -12,8 +12,8 @@ sends_blueprint = Blueprint("sends", __name__)
 def serialize_send(send: Send, user: User | None = None) -> dict:
     data = {
         "id": send.id,
-        "boulderID": send.boulder_id,
-        "userID": send.user_id,
+        "boulderId": send.boulder_id,
+        "userId": send.user_id,
         "rating": send.rating,
         "sendType": send.send_type,
         "createdAt": send.created_at.isoformat() if send.created_at else None,
@@ -48,7 +48,7 @@ def get_active_user(id: int) -> User | None:
 def index():
     query = db.select(Send).where(Send.deleted_at.is_(None))
 
-    boulder_id = request.args.get("boulderID")
+    boulder_id = request.args.get("boulderId")
     if boulder_id is not None:
         query = query.where(Send.boulder_id == int(boulder_id))
 
@@ -80,15 +80,15 @@ def get(id):
 def create():
     data = request.get_json(silent=True) or {}
 
-    boulder_id = data.get("boulderID")
-    user_id = data.get("userID")
+    boulder_id = data.get("boulderId")
+    user_id = data.get("userId")
     send_type = data.get("sendType")
 
     if boulder_id is None:
-        return jsonify({"error": "boulderID is required"}), 400
+        return jsonify({"error": "boulderId is required"}), 400
 
     if user_id is None:
-        return jsonify({"error": "userID is required"}), 400
+        return jsonify({"error": "userId is required"}), 400
 
     if send_type is None:
         return jsonify({"error": "sendType is required"}), 400
@@ -125,16 +125,16 @@ def update(id):
 
     data = request.get_json(silent=True) or {}
 
-    if "boulderID" in data:
-        boulder_id = data["boulderID"]
+    if "boulderId" in data:
+        boulder_id = data["boulderId"]
 
         if get_active_boulder(boulder_id) is None:
             return jsonify({"error": "boulder not found"}), 400
 
         send.boulder_id = boulder_id
 
-    if "userID" in data:
-        user_id = data["userID"]
+    if "userId" in data:
+        user_id = data["userId"]
 
         if get_active_user(user_id) is None:
             return jsonify({"error": "user not found"}), 400

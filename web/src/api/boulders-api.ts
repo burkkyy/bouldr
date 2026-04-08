@@ -40,8 +40,8 @@ export const bouldersApi = {
   },
   async create(attributes: Partial<Boulder>): Promise<Boulder> {
     const { data } = await http.post("/api/boulders/", {
-      authorID: attributes.authorId,
-      regionID: attributes.regionId,
+      authorId: attributes.authorId,
+      regionId: attributes.regionId,
       name: attributes.name,
       description: attributes.description,
       image: attributes.image,
@@ -51,14 +51,7 @@ export const bouldersApi = {
     return data
   },
   async update(boulderId: number, attributes: Partial<Boulder>): Promise<Boulder> {
-    const body: Record<string, unknown> = {}
-    if (attributes.name !== undefined) body.name = attributes.name
-    if (attributes.description !== undefined) body.description = attributes.description
-    if (attributes.image !== undefined) body.image = attributes.image
-    if (attributes.grade !== undefined) body.grade = attributes.grade
-    if (attributes.coordinates !== undefined) body.coordinates = attributes.coordinates
-    if (attributes.regionId !== undefined) body.regionID = attributes.regionId
-    const { data } = await http.patch(`/api/boulders/${boulderId}`, body)
+    const { data } = await http.patch(`/api/boulders/${boulderId}`, attributes)
     return data
   },
   async delete(boulderId: number): Promise<void> {
